@@ -1,9 +1,15 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { TitleBar } from "@/components/TitleBar";
 
 export default function TabsLayout() {
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: "#007AFF" }}>
+    <Tabs
+      screenOptions={{
+        tabBarActiveTintColor: "#007AFF",
+        header: () => <TitleBar />,
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
