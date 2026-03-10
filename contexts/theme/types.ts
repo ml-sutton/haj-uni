@@ -1,7 +1,12 @@
 /**
- * Theme mode: dark or light.
+ * Theme mode: dark, light, or follow system.
  */
-export type ThemeMode = "dark" | "light";
+export type ThemeMode = "dark" | "light" | "system";
+
+/**
+ * Resolved theme used for styling (always light or dark).
+ */
+export type ResolvedTheme = "dark" | "light";
 
 /**
  * Whether high-contrast mode is enabled.
@@ -13,6 +18,8 @@ export type HighContrast = boolean;
  */
 export interface ThemeState {
   theme: ThemeMode;
+  /** Resolved theme for styling; follows system when theme is "system". */
+  resolvedTheme: ResolvedTheme;
   highContrast: HighContrast;
 }
 

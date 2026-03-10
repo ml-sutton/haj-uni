@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 const safePreferencesSchema = z.object({
-  theme: z.enum(["light", "dark"]),
+  theme: z.enum(["light", "dark", "system"]),
   highContrast: z.boolean(),
   discreteMode: z.boolean(),
   quickExitEnabled: z.boolean(),
@@ -13,6 +13,7 @@ const safePreferencesSchema = z.object({
 const securePreferencesSchema = z.object({
   selfDestructAfterFailedAttempts: z.number(),
   lastRecoveryVerifiedAt: z.coerce.date().nullable(),
+  
 });
 
 type SafePreferences = z.infer<typeof safePreferencesSchema>;

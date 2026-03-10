@@ -6,12 +6,14 @@ import React, {
   useState,
   type ReactNode,
 } from "react";
-import type { ThemeContextValue, ThemeMode, HighContrast } from "./types";
+import { useColorScheme } from "react-native";
+import type { ThemeContextValue, ThemeMode, ResolvedTheme, HighContrast } from "./types";
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 const defaultState: ThemeContextValue = {
-  theme: "light",
+  theme: "system",
+  resolvedTheme: "light",
   highContrast: false,
   setTheme: () => {},
   setHighContrast: () => {},
@@ -29,13 +31,21 @@ export interface ThemeProviderProps {
 
 export function ThemeProvider({
   children,
-  initialTheme = "light",
+  initialTheme = "system",
   initialHighContrast = false,
 }: ThemeProviderProps) {
   const [theme, setThemeState] = useState<ThemeMode>(initialTheme);
   const [highContrast, setHighContrastState] = useState<HighContrast>(
     initialHighContrast
   );
+  const systemColorScheme = useColorScheme();
+
+  const resolvedTheme: ResolvedTheme = useMemo(() => {
+    if (theme === "system") {
+      return systemColorScheme === "dark" ? "dark" : "light";
+    }
+    return theme;
+  }, [theme, systemColorScheme]);
 
   const setTheme = useCallback((next: ThemeMode) => {
     setThemeState(next);
@@ -46,8 +56,13 @@ export function ThemeProvider({
   }, []);
 
   const toggleTheme = useCallback(() => {
-    setThemeState((prev) => (prev === "dark" ? "light" : "dark"));
-  }, []);
+    setThemeState((prev) => {
+      if (prev === "system") {
+        return resolvedTheme === "dark" ? "light" : "dark";
+      }
+      return prev === "dark" ? "light" : "dark";
+    });
+  }, [resolvedTheme]);
 
   const toggleHighContrast = useCallback(() => {
     setHighContrastState((prev) => !prev);
@@ -56,6 +71,7 @@ export function ThemeProvider({
   const value = useMemo<ThemeContextValue>(
     () => ({
       theme,
+      resolvedTheme,
       highContrast,
       setTheme,
       setHighContrast,
@@ -64,6 +80,7 @@ export function ThemeProvider({
     }),
     [
       theme,
+      resolvedTheme,
       highContrast,
       setTheme,
       setHighContrast,

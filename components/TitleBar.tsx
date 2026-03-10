@@ -36,30 +36,35 @@ function getTitleFromPathname(pathname: string): string {
   return `HAJ | ${label}`;
 }
 
-export function TitleBar() {
-  const { theme } = useTheme();
+export interface TitleBarProps {
+  /** Override title (e.g. "HAJ | Registration"). When not set, derived from pathname. */
+  title?: string;
+}
+
+export function TitleBar({ title: titleOverride }: TitleBarProps = {}) {
+  const { resolvedTheme } = useTheme();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const router = useRouter();
 
   const colors = useMemo(
-    () => (theme === "dark" ? DARK_GRADIENT : LIGHT_GRADIENT),
-    [theme]
+    () => (resolvedTheme === "dark" ? DARK_GRADIENT : LIGHT_GRADIENT),
+    [resolvedTheme]
   );
 
   const LineartSvg = useMemo(
-    () => (theme === "dark" ? PinkLineart : BlueLineart),
-    [theme]
+    () => (resolvedTheme === "dark" ? PinkLineart : BlueLineart),
+    [resolvedTheme]
   );
 
   const title = useMemo(
-    () => getTitleFromPathname(pathname),
-    [pathname]
+    () => titleOverride ?? getTitleFromPathname(pathname),
+    [pathname, titleOverride]
   );
 
-  const titleColor = theme === "dark" ? "#fff" : "#1a1a1a";
+  const titleColor = resolvedTheme === "dark" ? "#fff" : "#1a1a1a";
   const iconBorderColor =
-    theme === "dark" ? DARK_ICON_BORDER : LIGHT_ICON_BORDER;
+    resolvedTheme === "dark" ? DARK_ICON_BORDER : LIGHT_ICON_BORDER;
 
   return (
     <LinearGradient

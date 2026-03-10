@@ -1,18 +1,15 @@
-import { Text, View } from "react-native";
+import { RegistrationForm } from "@/components/registration/registrationForm";
+import type { RegistrationFormData } from "@/components/registration/registrationTypes";
+import { View } from "react-native";
 
 export default function Register() {
+  const handleSubmit = (_data: RegistrationFormData): void => {
+    // TODO: persist via writeSafeDBObject / writeEncryptedDBObject and navigate
+  };
+
   return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <Text style={{ fontSize: 24, fontWeight: "600", marginBottom: 8 }}>
-        Register
-      </Text>
-      <Text style={{ color: "#666" }}>This page is not implemented.</Text>
+    <View style={{ flex: 1 }}>
+      <RegistrationForm onSubmit={handleSubmit} />
     </View>
   );
 }
