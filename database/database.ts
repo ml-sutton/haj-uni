@@ -1,14 +1,16 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as CryptoJS from "crypto-js";
 import * as Crypto from "expo-crypto";
 import type { SafePreferences } from "../models/preferences";
 import { validateSafePreferences } from "../models/preferences";
 import type { User } from "../models/user";
 import { validateUser } from "../models/user";
 
+const AES_IV_BYTES = 16;
+
 const SAFE_STORAGE_KEY = "@haj/database/safe";
 const ENCRYPTED_STORAGE_KEY = "@haj/database/encrypted";
 const SALT_STORAGE_KEY = "@haj/database/salt";
-const DERIVED_KEY_STORAGE_KEY = "@haj/database/derivedKey";
 
 const KDF_ITERATIONS = 10000;
 const SALT_BYTES = 16;
@@ -28,16 +30,6 @@ async function deriveKey(pin: string, saltHex: string): Promise<string> {
   return key;
 }
 
-/** Constant-time comparison to avoid timing attacks. */
-function constantTimeCompare(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let result = 0;
-  for (let i = 0; i < a.length; i++) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  return result === 0;
-}
-
 function uint8ArrayToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, "0"))
@@ -45,27 +37,27 @@ function uint8ArrayToHex(bytes: Uint8Array): string {
 }
 
 // register pin
-export async function registerPin(pin: string): Promise<void> {
+/** Stores only the salt (data to compute the key). Returns the derived key for one-time use (e.g. to encrypt initial data). */
+export async function registerPin(pin: string): Promise<string> {
   const salt = Crypto.getRandomBytes(SALT_BYTES);
   const saltHex = uint8ArrayToHex(salt);
   const derivedKey = await deriveKey(pin, saltHex);
-  await AsyncStorage.multiSet([
-    [SALT_STORAGE_KEY, saltHex],
-    [DERIVED_KEY_STORAGE_KEY, derivedKey],
-  ]);
+  await AsyncStorage.setItem(SALT_STORAGE_KEY, saltHex);
+  return derivedKey;
 }
 // end register pin
 
 // Login
-/** Verifies PIN and returns the derived encryption key on success. Does not store the PIN. */
+/** Verifies PIN by deriving key and attempting to decrypt stored data. Returns the derived key on success. Does not store the PIN or the key. */
 export async function login(pin: string): Promise<string> {
   const saltHex = await AsyncStorage.getItem(SALT_STORAGE_KEY);
-  const storedKey = await AsyncStorage.getItem(DERIVED_KEY_STORAGE_KEY);
-  if (saltHex === null || storedKey === null) {
+  if (saltHex === null) {
     throw new Error("No PIN registered");
   }
   const derivedKey = await deriveKey(pin, saltHex);
-  if (!constantTimeCompare(derivedKey, storedKey)) {
+  try {
+    await readEncryptedDBObject(derivedKey);
+  } catch {
     throw new Error("Invalid PIN");
   }
   return derivedKey;
@@ -75,21 +67,21 @@ export async function login(pin: string): Promise<string> {
 // change pin
 export async function changePin(oldPin: string, newPin: string): Promise<void> {
   const saltHex = await AsyncStorage.getItem(SALT_STORAGE_KEY);
-  const storedKey = await AsyncStorage.getItem(DERIVED_KEY_STORAGE_KEY);
-  if (saltHex === null || storedKey === null) {
+  if (saltHex === null) {
     throw new Error("No PIN registered");
   }
-  const oldDerived = await deriveKey(oldPin, saltHex);
-  if (!constantTimeCompare(oldDerived, storedKey)) {
+  const oldKey = await deriveKey(oldPin, saltHex);
+  let user: User;
+  try {
+    user = await readEncryptedDBObject(oldKey);
+  } catch {
     throw new Error("Invalid current PIN");
   }
   const newSalt = Crypto.getRandomBytes(SALT_BYTES);
   const newSaltHex = uint8ArrayToHex(newSalt);
-  const newDerivedKey = await deriveKey(newPin, newSaltHex);
-  await AsyncStorage.multiSet([
-    [SALT_STORAGE_KEY, newSaltHex],
-    [DERIVED_KEY_STORAGE_KEY, newDerivedKey],
-  ]);
+  const newKey = await deriveKey(newPin, newSaltHex);
+  await writeEncryptedDBObject(user, newKey);
+  await AsyncStorage.setItem(SALT_STORAGE_KEY, newSaltHex);
 }
 // end change pin
 function parseJson(raw: string): unknown {
@@ -117,13 +109,33 @@ export async function readSafeDBObject(): Promise<SafePreferences> {
   return validateSafePreferences(data);
 }
 
-/** Read encrypted (user) data. No encryption applied yet. */
-export async function readEncryptedDBObject(): Promise<User> {
+/** Read encrypted (user) data. Decrypts with the given key (hex). Supports legacy plaintext JSON for migration. */
+export async function readEncryptedDBObject(key: string): Promise<User> {
   const raw = await AsyncStorage.getItem(ENCRYPTED_STORAGE_KEY);
   if (raw === null) {
     throw new Error("Encrypted database not found");
   }
-  const data = parseJson(raw) as unknown;
+  if (raw.startsWith("{")) {
+    const data = parseJson(raw) as unknown;
+    return validateUser(data);
+  }
+  const [ivHex, ctBase64] = raw.split(":");
+  if (!ivHex || !ctBase64) {
+    throw new Error("Encrypted database invalid format");
+  }
+  const keyWA = CryptoJS.enc.Hex.parse(key);
+  const ivWA = CryptoJS.enc.Hex.parse(ivHex);
+  const ctWA = CryptoJS.enc.Base64.parse(ctBase64);
+  const decrypted = CryptoJS.AES.decrypt(
+    { ciphertext: ctWA } as CryptoJS.lib.CipherParams,
+    keyWA,
+    { iv: ivWA }
+  );
+  const json = decrypted.toString(CryptoJS.enc.Utf8);
+  if (!json) {
+    throw new Error("Decryption failed");
+  }
+  const data = parseJson(json) as unknown;
   return validateUser(data);
 }
 
@@ -134,9 +146,19 @@ export async function writeSafeDBObject(object: SafePreferences): Promise<void> 
   await AsyncStorage.setItem(SAFE_STORAGE_KEY, raw);
 }
 
-/** Write encrypted (user) data. No encryption applied yet. */
-export async function writeEncryptedDBObject(object: User): Promise<void> {
+/** Write encrypted (user) data. Encrypts with the given key (hex). */
+export async function writeEncryptedDBObject(
+  object: User,
+  key: string
+): Promise<void> {
   const validated = validateUser(object);
-  const raw = JSON.stringify(validated);
-  await AsyncStorage.setItem(ENCRYPTED_STORAGE_KEY, raw);
+  const json = JSON.stringify(validated);
+  const iv = Crypto.getRandomBytes(AES_IV_BYTES);
+  const ivHex = uint8ArrayToHex(iv);
+  const keyWA = CryptoJS.enc.Hex.parse(key);
+  const ivWA = CryptoJS.enc.Hex.parse(ivHex);
+  const encrypted = CryptoJS.AES.encrypt(json, keyWA, { iv: ivWA });
+  const ctBase64 = encrypted.ciphertext.toString(CryptoJS.enc.Base64);
+  const stored = `${ivHex}:${ctBase64}`;
+  await AsyncStorage.setItem(ENCRYPTED_STORAGE_KEY, stored);
 }

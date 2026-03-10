@@ -106,7 +106,7 @@ export function RegistrationForm({
 
   const saveToDatabase = useCallback(
     async (formData: RegistrationFormData) => {
-      await registerPin(formData.pin);
+      const key = await registerPin(formData.pin);
       await writeSafeDBObject(formData.safePreferences);
       const user = {
         username: formData.username.trim(),
@@ -114,7 +114,7 @@ export function RegistrationForm({
         doses: [],
         preferences: formData.securePreferences,
       };
-      await writeEncryptedDBObject(user);
+      await writeEncryptedDBObject(user, key);
       setDatabaseObject({
         user,
         safePreferences: formData.safePreferences,
