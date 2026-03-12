@@ -1,20 +1,24 @@
-import { useTheme } from "@/contexts/theme";
+import {
+  useTheme,
+  getGradientColors,
+  primaryTextColor,
+  secondaryTextColor,
+  PRIMARY_BUTTON_BG,
+} from "@/contexts/theme";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
-const DARK_GRADIENT = ["#174A5E", "#333333"] as const;
-const LIGHT_GRADIENT = ["#F7DAF7", "#EBEBEB"] as const;
-
 export default function GetStarted() {
   const router = useRouter();
   const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
-  const gradient = isDark ? DARK_GRADIENT : LIGHT_GRADIENT;
+  const titleColor = primaryTextColor(resolvedTheme);
+  const subtitleColor = secondaryTextColor(resolvedTheme);
+  const gradientColors = getGradientColors(resolvedTheme);
 
   return (
     <LinearGradient
-      colors={[...gradient]}
+      colors={[...gradientColors]}
       style={styles.gradient}
       start={{ x: 0.5, y: 0 }}
       end={{ x: 0.5, y: 1 }}
@@ -25,13 +29,13 @@ export default function GetStarted() {
           style={styles.icon}
           accessibilityLabel="Haj app icon"
         />
-        <Text style={[styles.title, { color: isDark ? "#fff" : "#1a1a1a" }]}>
+        <Text style={[styles.title, { color: titleColor }]}>
           Welcome to Haj!
         </Text>
         <Text
           style={[
             styles.subtitle,
-            { color: isDark ? "rgba(255,255,255,0.9)" : "#444" },
+            { color: subtitleColor },
           ]}
         >
           Are you ready to enter the world of cool shark facts?
@@ -84,7 +88,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 40,
     borderRadius: 12,
-    backgroundColor: "#0066cc",
+    backgroundColor: PRIMARY_BUTTON_BG,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,

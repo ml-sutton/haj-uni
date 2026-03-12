@@ -1,4 +1,14 @@
-import { useCallback, useEffect, useState } from "react";
+import {
+  useTheme,
+  getGradientColors,
+  primaryTextColor,
+  secondaryTextColor,
+  labelTextColor,
+  valueTextColor,
+  cardBackgroundColor,
+} from "@/contexts/theme";
+import { useDatabaseStore } from "@/stores/databaseStore";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   ActivityIndicator,
   ScrollView,
@@ -6,157 +16,140 @@ import {
   Text,
   View,
 } from "react-native";
-import { readEncryptedDBObject } from "@/database/database";
-import type { User } from "@/models/user";
-import { useDatabaseStore } from "@/stores/databaseStore";
-
-const sectionTitle = { fontSize: 16, fontWeight: "600", marginTop: 16, marginBottom: 6 };
-const row = { flexDirection: "row", marginBottom: 4 };
-const label = { fontWeight: "500", marginRight: 6, minWidth: 120 };
-const value = { flex: 1, color: "#333" };
 
 export default function Home() {
+  const { resolvedTheme } = useTheme();
   const encryptionKey = useDatabaseStore((s) => s.encryptionKey);
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const user = useDatabaseStore((s) => s.user);
+  const titleColor = primaryTextColor(resolvedTheme);
+  const secondaryColor = secondaryTextColor(resolvedTheme);
+  const labelColor = labelTextColor(resolvedTheme);
+  const valueColor = valueTextColor(resolvedTheme);
+  const cardBg = cardBackgroundColor(resolvedTheme);
 
-  const loadUser = useCallback(async () => {
-    if (!encryptionKey) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await readEncryptedDBObject(encryptionKey);
-      setUser(data);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load user data");
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [encryptionKey]);
-
-  useEffect(() => {
-    loadUser();
-  }, [loadUser]);
+  const gradientColors = getGradientColors(resolvedTheme);
+  const loading = encryptionKey != null && user === null;
 
   if (loading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.hint}>Loading user data…</Text>
-      </View>
+      <LinearGradient colors={[...gradientColors]} style={styles.gradient}>
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={titleColor} />
+          <Text style={[styles.hint, { color: secondaryColor }]}>Loading user data…</Text>
+        </View>
+      </LinearGradient>
     );
   }
 
-  if (error) {
+  if (!encryptionKey || !user) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.error}>{error}</Text>
-      </View>
-    );
-  }
-
-  if (!user) {
-    return (
-      <View style={styles.centered}>
-        <Text style={styles.hint}>Not signed in. User data is encrypted.</Text>
-      </View>
+      <LinearGradient colors={[...gradientColors]} style={styles.gradient}>
+        <View style={styles.centered}>
+          <Text style={[styles.hint, { color: secondaryColor }]}>
+            {!encryptionKey
+              ? "Not signed in. User data is encrypted."
+              : "Loading user data…"}
+          </Text>
+        </View>
+      </LinearGradient>
     );
   }
 
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      <Text style={styles.title}>Your data</Text>
+    <LinearGradient colors={[...gradientColors]} style={styles.gradient}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={[styles.title, { color: titleColor }]}>Your data</Text>
 
-      <Text style={sectionTitle}>Profile</Text>
-      <View style={row}>
-        <Text style={label}>Username</Text>
-        <Text style={value}>{user.username}</Text>
-      </View>
-      <View style={row}>
-        <Text style={label}>Pronouns</Text>
-        <Text style={value}>
-          {user.pronouns.length ? user.pronouns.join(", ") : "—"}
-        </Text>
-      </View>
+        <Text style={[styles.sectionTitle, { color: titleColor }]}>Profile</Text>
+        <View style={styles.row}>
+          <Text style={[styles.label, { color: labelColor }]}>Username</Text>
+          <Text style={[styles.value, { color: valueColor }]}>{user.username}</Text>
+        </View>
+        <View style={styles.row}>
+          <Text style={[styles.label, { color: labelColor }]}>Pronouns</Text>
+          <Text style={[styles.value, { color: valueColor }]}>
+            {user.pronouns.length ? user.pronouns.join(", ") : "—"}
+          </Text>
+        </View>
 
-      <Text style={sectionTitle}>Preferences (secure)</Text>
-      <View style={row}>
-        <Text style={label}>Self-destruct after attempts</Text>
-        <Text style={value}>{String(user.preferences.selfDestructAfterFailedAttempts)}</Text>
-      </View>
-      <View style={row}>
-        <Text style={label}>Last recovery verified</Text>
-        <Text style={value}>
-          {user.preferences.lastRecoveryVerifiedAt
-            ? new Date(user.preferences.lastRecoveryVerifiedAt).toLocaleString()
-            : "—"}
-        </Text>
-      </View>
+        <Text style={[styles.sectionTitle, { color: titleColor }]}>Preferences (secure)</Text>
+        <View style={styles.row}>
+          <Text style={[styles.label, { color: labelColor }]}>Self-destruct after attempts</Text>
+          <Text style={[styles.value, { color: valueColor }]}>{String(user.preferences.selfDestructAfterFailedAttempts)}</Text>
+        </View>
+        <View style={styles.row}>
+          <Text style={[styles.label, { color: labelColor }]}>Last recovery verified</Text>
+          <Text style={[styles.value, { color: valueColor }]}>
+            {user.preferences.lastRecoveryVerifiedAt
+              ? new Date(user.preferences.lastRecoveryVerifiedAt).toLocaleString()
+              : "—"}
+          </Text>
+        </View>
 
-      <Text style={sectionTitle}>Doses ({user.doses.length})</Text>
-      {user.doses.length === 0 ? (
-        <Text style={styles.hint}>No doses recorded.</Text>
-      ) : (
-        user.doses.map((dose, i) => (
-          <View key={i} style={styles.doseCard}>
-            <View style={row}>
-              <Text style={label}>Medication</Text>
-              <Text style={value}>{dose.medication}</Text>
-            </View>
-            <View style={row}>
-              <Text style={label}>Dosage</Text>
-              <Text style={value}>{dose.dosage} {dose.unit}</Text>
-            </View>
-            <View style={row}>
-              <Text style={label}>Type</Text>
-              <Text style={value}>{dose.medicationType}</Text>
-            </View>
-            <View style={row}>
-              <Text style={label}>Method</Text>
-              <Text style={value}>{dose.ingestionMethod}</Text>
-            </View>
-            <View style={row}>
-              <Text style={label}>Frequency</Text>
-              <Text style={value}>{dose.frequency} per day</Text>
-            </View>
-            <View style={row}>
-              <Text style={label}>Scheduled</Text>
-              <Text style={value}>
-                {new Date(dose.scheduledTime).toLocaleString()}
-              </Text>
-            </View>
-            <View style={row}>
-              <Text style={label}>Taken</Text>
-              <Text style={value}>
-                {dose.takenTime
-                  ? new Date(dose.takenTime).toLocaleString()
-                  : "—"}
-              </Text>
-            </View>
-            {dose.notes != null && dose.notes !== "" && (
-              <View style={row}>
-                <Text style={label}>Notes</Text>
-                <Text style={value}>{dose.notes}</Text>
+        <Text style={[styles.sectionTitle, { color: titleColor }]}>Doses</Text>
+        {(() => {
+          const allDoses = (user.dosages ?? []).flatMap((d) =>
+            d.doses.map((dose) => ({ dosage: d, dose }))
+          );
+          if (allDoses.length === 0) {
+            return <Text style={[styles.hint, { color: secondaryColor }]}>No doses recorded.</Text>;
+          }
+          return allDoses.map(({ dosage, dose }) => (
+            <View key={dose.id} style={[styles.doseCard, { backgroundColor: cardBg }]}>
+              <View style={styles.row}>
+                <Text style={[styles.label, { color: labelColor }]}>Medication</Text>
+                <Text style={[styles.value, { color: valueColor }]}>{dosage.name}</Text>
               </View>
-            )}
-          </View>
-        ))
-      )}
-    </ScrollView>
+              <View style={styles.row}>
+                <Text style={[styles.label, { color: labelColor }]}>Dosage</Text>
+                <Text style={[styles.value, { color: valueColor }]}>{dosage.dosage} {dosage.unit}</Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={[styles.label, { color: labelColor }]}>Type</Text>
+                <Text style={[styles.value, { color: valueColor }]}>{dosage.medicationType}</Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={[styles.label, { color: labelColor }]}>Method</Text>
+                <Text style={[styles.value, { color: valueColor }]}>{dosage.ingestionMethod}</Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={[styles.label, { color: labelColor }]}>Frequency</Text>
+                <Text style={[styles.value, { color: valueColor }]}>Every {dosage.frequencyDays} day(s)</Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={[styles.label, { color: labelColor }]}>Scheduled</Text>
+                <Text style={[styles.value, { color: valueColor }]}>
+                  {new Date(dose.scheduledTime).toLocaleString()}
+                </Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={[styles.label, { color: labelColor }]}>Taken</Text>
+                <Text style={[styles.value, { color: valueColor }]}>
+                  {dose.takenTime
+                    ? new Date(dose.takenTime).toLocaleString()
+                    : "—"}
+                </Text>
+              </View>
+              {dosage.notes != null && dosage.notes !== "" && (
+                <View style={styles.row}>
+                  <Text style={[styles.label, { color: labelColor }]}>Notes</Text>
+                  <Text style={[styles.value, { color: valueColor }]}>{dosage.notes}</Text>
+                </View>
+              )}
+            </View>
+          ));
+        })()}
+      </ScrollView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  gradient: { flex: 1 },
   centered: {
     flex: 1,
     justifyContent: "center",
@@ -165,13 +158,16 @@ const styles = StyleSheet.create({
   },
   scroll: { flex: 1 },
   content: { padding: 20, paddingBottom: 40 },
-  title: { fontSize: 24, fontWeight: "600", marginBottom: 8 },
-  hint: { color: "#666", marginTop: 8 },
-  error: { color: "#c00", marginTop: 8 },
+  title: { fontSize: 24, fontWeight: "700", marginBottom: 8 },
+  sectionTitle: { fontSize: 16, fontWeight: "600", marginTop: 16, marginBottom: 6 },
+  row: { flexDirection: "row", marginBottom: 4 },
+  label: { fontWeight: "500", marginRight: 6, minWidth: 120 },
+  value: { flex: 1 },
+  hint: { marginTop: 8, fontSize: 16 },
+  error: { marginTop: 8, fontSize: 14 },
   doseCard: {
     marginBottom: 12,
     padding: 12,
-    backgroundColor: "#f5f5f5",
     borderRadius: 8,
   },
 });

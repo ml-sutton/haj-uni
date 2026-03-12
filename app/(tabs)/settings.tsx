@@ -1,46 +1,61 @@
-import { useTheme } from "@/contexts/theme";
+import {
+  useTheme,
+  getGradientColors,
+  primaryTextColor,
+  secondaryTextColor,
+  PRIMARY_BUTTON_BG,
+} from "@/contexts/theme";
+import { LinearGradient } from "expo-linear-gradient";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 export default function Settings() {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, resolvedTheme } = useTheme();
+  const titleColor = primaryTextColor(resolvedTheme);
+  const secondaryColor = secondaryTextColor(resolvedTheme);
+  const gradientColors = getGradientColors(resolvedTheme);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Settings</Text>
-      <Text style={styles.subtitle}>This page is not implemented.</Text>
-      <Pressable style={styles.button} onPress={toggleTheme}>
-        <Text style={styles.buttonText}>
-          Toggle theme (current: {theme})
+    <LinearGradient colors={[...gradientColors]} style={styles.gradient}>
+      <View style={styles.container}>
+        <Text style={[styles.title, { color: titleColor }]}>Settings</Text>
+        <Text style={[styles.subtitle, { color: secondaryColor }]}>
+          This page is not implemented.
         </Text>
-      </Pressable>
-    </View>
+        <Pressable style={styles.button} onPress={toggleTheme}>
+          <Text style={styles.buttonText}>
+            Toggle theme (current: {theme})
+          </Text>
+        </Pressable>
+      </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  gradient: { flex: 1 },
   container: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
   title: {
-    fontSize: 24,
-    fontWeight: "600",
-    marginBottom: 8,
+    fontSize: 26,
+    fontWeight: "700",
+    marginBottom: 12,
   },
   subtitle: {
-    color: "#666",
     marginBottom: 24,
+    fontSize: 17,
   },
   button: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: "#007AFF",
-    borderRadius: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    backgroundColor: PRIMARY_BUTTON_BG,
+    borderRadius: 12,
   },
   buttonText: {
     color: "#fff",
-    fontSize: 16,
-    fontWeight: "500",
+    fontSize: 18,
+    fontWeight: "600",
   },
 });

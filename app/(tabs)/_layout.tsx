@@ -1,4 +1,5 @@
 import { useTheme } from "@/contexts/theme";
+import { useStoreSync } from "@/stores/storeSync";
 import { Tabs } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,6 +18,7 @@ const LIGHT_BORDER = "#7fbfe9";
 
 export default function TabsLayout() {
   const { resolvedTheme } = useTheme();
+  useStoreSync();
 
   const gradientColors = useMemo(
     () => (resolvedTheme === "dark" ? DARK_GRADIENT : LIGHT_GRADIENT),

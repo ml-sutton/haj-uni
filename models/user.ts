@@ -1,11 +1,11 @@
 import { z } from "zod";
-import { doseSchema } from "./dose";
+import { dosageSchema } from "./dosage";
 import { securePreferencesSchema } from "./preferences";
 
 const userSchema = z.object({
   username: z.string(),
   pronouns: z.array(z.string()),
-  doses: z.array(doseSchema),
+  dosages: z.array(dosageSchema),
   preferences: securePreferencesSchema,
 });
 

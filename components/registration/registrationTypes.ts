@@ -21,6 +21,7 @@ export const DEFAULT_SAFE_PREFERENCES: SafePreferences = {
 export const DEFAULT_SECURE_PREFERENCES: SecurePreferences = {
   selfDestructAfterFailedAttempts: 5,
   lastRecoveryVerifiedAt: null,
+  dosesPerDosage: 7,
 };
 
 export const DEFAULT_REGISTRATION_FORM_DATA: RegistrationFormData = {

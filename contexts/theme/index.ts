@@ -8,3 +8,23 @@ export type {
   ThemeActions,
   ThemeContextValue,
 } from "./types";
+export {
+  ONBOARDING_GRADIENT,
+  GRADIENT_START,
+  GRADIENT_END,
+  getGradientColors,
+  primaryTextColor,
+  secondaryTextColor,
+  mutedTextColor,
+  labelTextColor,
+  valueTextColor,
+  tabBarActiveTint,
+  tabBarInactiveTint,
+  tabBarBorderColor,
+  titleBarIconBorderColor,
+  cardBackgroundColor,
+  inputBackgroundColor,
+  inputBorderColor,
+  PRIMARY_BUTTON_BG,
+  ERROR_TEXT_COLOR,
+} from "./onboardingStyles";

@@ -14,7 +14,12 @@ import {
   PIN_LENGTH,
 } from "@/components/registration/registrationTypes";
 import { UsernameStep } from "@/components/registration/usernameStep";
-import { useTheme } from "@/contexts/theme";
+import {
+  useTheme,
+  getGradientColors,
+  primaryTextColor,
+  PRIMARY_BUTTON_BG,
+} from "@/contexts/theme";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -29,12 +34,10 @@ import {
   View,
 } from "react-native";
 
-/** Same as (tabs) top/bottom bar gradient */
+const TOP_BAR_HEIGHT = 72;
+/** Same as (tabs) bottom bar gradient – used for onboarding footer. */
 const TABS_DARK_GRADIENT = ["#6495ed", "#73c2fb"] as const;
 const TABS_LIGHT_GRADIENT = ["#FFA4B6", "#F19CBB"] as const;
-const ONBOARDING_DARK_GRADIENT = ["#174A5E", "#333333"] as const;
-const ONBOARDING_LIGHT_GRADIENT = ["#F7DAF7", "#EBEBEB"] as const;
-const TOP_BAR_HEIGHT = 72;
 
 const STEPS = [
   "username",
@@ -58,8 +61,13 @@ export function RegistrationForm({
 }: RegistrationFormProps): React.ReactElement {
   const { resolvedTheme, setTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
+  const gradientColors = getGradientColors(resolvedTheme);
   const tabsGradient = isDark ? TABS_DARK_GRADIENT : TABS_LIGHT_GRADIENT;
-  const onboardingGradient = isDark ? ONBOARDING_DARK_GRADIENT : ONBOARDING_LIGHT_GRADIENT;
+  const progressTextColor = primaryTextColor(resolvedTheme);
+  const progressTrackColor = isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.1)";
+  const footerBorderColor = isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.08)";
+  const buttonSecondaryBg = isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.06)";
+  const buttonSecondaryTextColor = primaryTextColor(resolvedTheme);
 
   const [stepIndex, setStepIndex] = useState(0);
   const [data, setData] = useState<RegistrationFormData>(DEFAULT_REGISTRATION_FORM_DATA);
@@ -72,7 +80,9 @@ export function RegistrationForm({
   }, [data.safePreferences.theme, setTheme]);
 
   const router = useRouter();
-  const setDatabaseObject = useDatabaseStore((s) => s.setDatabaseObject);
+  const setUser = useDatabaseStore((s) => s.setUser);
+  const setEncryptionKey = useDatabaseStore((s) => s.setEncryptionKey);
+  const setIsAuthed = useDatabaseStore((s) => s.setIsAuthed);
   const savingStartedRef = useRef(false);
 
   const stepId = STEP_ORDER[stepIndex];
@@ -111,16 +121,15 @@ export function RegistrationForm({
       const user = {
         username: formData.username.trim(),
         pronouns: formData.pronouns,
-        doses: [],
+        dosages: [],
         preferences: formData.securePreferences,
       };
       await writeEncryptedDBObject(user, key);
-      setDatabaseObject({
-        user,
-        safePreferences: formData.safePreferences,
-      });
+      setEncryptionKey(key);
+      setUser(user);
+      setIsAuthed(true);
     },
-    [setDatabaseObject]
+    [setEncryptionKey, setUser, setIsAuthed]
   );
 
   useEffect(() => {
@@ -155,12 +164,6 @@ export function RegistrationForm({
     setPinError(undefined);
   }, []);
 
-  const progressTextColor = isDark ? "rgba(255,255,255,0.95)" : "#444";
-  const progressTrackColor = isDark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.12)";
-  const footerBorderColor = isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.08)";
-  const buttonSecondaryBg = isDark ? "rgba(255,255,255,0.2)" : "#f0f0f0";
-  const buttonSecondaryTextColor = isDark ? "#fff" : "#1a1a1a";
-
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -170,7 +173,7 @@ export function RegistrationForm({
       <TitleBar title="HAJ | Registration" />
       <View style={styles.middleWrap}>
         <LinearGradient
-          colors={[...onboardingGradient]}
+          colors={[...gradientColors]}
           style={StyleSheet.absoluteFill}
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}

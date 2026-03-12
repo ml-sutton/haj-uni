@@ -184,6 +184,27 @@ export function PreferencesStep({
           accessibilityLabel="Self destruct after failed attempts"
         />
       </View>
+      <View style={styles.row}>
+        <Text style={[styles.label, { color: labelColor }]}>Doses to create per new dosage</Text>
+        <Text style={[styles.hint, { color: sectionTitleColor }]}>
+          When you create a new dosage, this many scheduled doses are created. Long-press Save for a single one-off dose.
+        </Text>
+        <TextInput
+          style={[
+            styles.numberInput,
+            { backgroundColor: numberInputBg, borderColor: numberInputBorder, color: numberInputColor },
+          ]}
+          value={String(securePreferences.dosesPerDosage)}
+          onChangeText={(t) => {
+            const n = parseInt(t, 10);
+            if (!Number.isNaN(n) && n >= 1 && n <= 999) setSecure({ dosesPerDosage: n });
+          }}
+          keyboardType="number-pad"
+          placeholder="7"
+          placeholderTextColor={placeholderColor}
+          accessibilityLabel="Doses to create per new dosage"
+        />
+      </View>
     </ScrollView>
   );
 }
@@ -209,6 +230,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
     marginBottom: 6,
+  },
+  hint: {
+    fontSize: 13,
+    marginBottom: 6,
+    opacity: 0.9,
   },
   themeButtons: {
     flexDirection: "row",

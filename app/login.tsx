@@ -1,5 +1,11 @@
-import { login } from "@/database/database";
-import { useTheme } from "@/contexts/theme";
+import {
+  useTheme,
+  getGradientColors,
+  primaryTextColor,
+  secondaryTextColor,
+  PRIMARY_BUTTON_BG,
+} from "@/contexts/theme";
+import { login, readEncryptedDBObject } from "@/database/database";
 import { useNavigation, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -15,8 +21,6 @@ import {
 import { useDatabaseStore } from "@/stores/databaseStore";
 
 const PIN_LENGTH = 6;
-const DARK_GRADIENT = ["#174A5E", "#333333"] as const;
-const LIGHT_GRADIENT = ["#F7DAF7", "#EBEBEB"] as const;
 const DIGITS = Array.from({ length: PIN_LENGTH }, (_, i) => i);
 
 export default function Login() {
@@ -24,7 +28,9 @@ export default function Login() {
   const navigation = useNavigation();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
-  const gradient = isDark ? DARK_GRADIENT : LIGHT_GRADIENT;
+  const gradientColors = getGradientColors(resolvedTheme);
+  const labelColor = primaryTextColor(resolvedTheme);
+  const hintColor = secondaryTextColor(resolvedTheme);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener("beforeRemove", (e) => {
@@ -40,13 +46,13 @@ export default function Login() {
   const allowingRemoveRef = useRef(false);
 
   const setEncryptionKey = useDatabaseStore((s) => s.setEncryptionKey);
+  const setUser = useDatabaseStore((s) => s.setUser);
   const setIsAuthed = useDatabaseStore((s) => s.setIsAuthed);
 
-  const labelColor = isDark ? "#fff" : "#1a1a1a";
   const dotBorderDefault = isDark ? "rgba(255,255,255,0.35)" : "#ccc";
   const dotBg = isDark ? "rgba(255,255,255,0.1)" : "#fff";
   const dotFocusedBg = isDark ? "rgba(0,102,204,0.2)" : "rgba(0,102,204,0.05)";
-  const dotTextColor = isDark ? "#fff" : "#1a1a1a";
+  const dotTextColor = labelColor;
 
   const digits = pin.padEnd(PIN_LENGTH, " ").split("");
   const canSubmit = pin.length === PIN_LENGTH;
@@ -63,7 +69,9 @@ export default function Login() {
     setError(null);
     try {
       const key = await login(pin);
+      const user = await readEncryptedDBObject(key);
       setEncryptionKey(key);
+      setUser(user);
       setIsAuthed(true);
       allowingRemoveRef.current = true;
       router.replace("/(tabs)");
@@ -73,11 +81,11 @@ export default function Login() {
     } finally {
       setLoading(false);
     }
-  }, [pin, canSubmit, loading, setEncryptionKey, setIsAuthed, router]);
+  }, [pin, canSubmit, loading, setEncryptionKey, setUser, setIsAuthed, router]);
 
   return (
     <LinearGradient
-      colors={[...gradient]}
+      colors={[...gradientColors]}
       style={styles.gradient}
       start={{ x: 0.5, y: 0 }}
       end={{ x: 0.5, y: 1 }}
@@ -91,7 +99,7 @@ export default function Login() {
         <Text style={[styles.welcome, { color: labelColor }]}>
           Welcome back
         </Text>
-        <Text style={[styles.hint, { color: isDark ? "rgba(255,255,255,0.8)" : "#555" }]}>
+        <Text style={[styles.hint, { color: hintColor }]}>
           Enter your PIN to continue
         </Text>
 
@@ -228,7 +236,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 48,
     borderRadius: 12,
-    backgroundColor: "#0066cc",
+    backgroundColor: PRIMARY_BUTTON_BG,
     minWidth: 160,
     alignItems: "center",
     shadowColor: "#000",

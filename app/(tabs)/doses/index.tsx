@@ -1,5 +1,16 @@
-import { useFocusEffect } from "@react-navigation/native";
-import { useCallback, useState } from "react";
+import {
+  useTheme,
+  getGradientColors,
+  primaryTextColor,
+  secondaryTextColor,
+  cardBackgroundColor,
+  PRIMARY_BUTTON_BG,
+} from "@/contexts/theme";
+import type { Dose } from "@/models/dose";
+import type { Dosage } from "@/models/dosage";
+import { useDatabaseStore } from "@/stores/databaseStore";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import {
   ActivityIndicator,
   Pressable,
@@ -8,129 +19,113 @@ import {
   Text,
   View,
 } from "react-native";
-import { readEncryptedDBObject } from "@/database/database";
-import type { Dose } from "@/models/dose";
-import type { User } from "@/models/user";
-import { useDatabaseStore } from "@/stores/databaseStore";
-import { useRouter } from "expo-router";
 
 export default function DosesScreen() {
   const router = useRouter();
+  const { resolvedTheme } = useTheme();
   const encryptionKey = useDatabaseStore((s) => s.encryptionKey);
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const loadUser = useCallback(async () => {
-    if (!encryptionKey) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await readEncryptedDBObject(encryptionKey);
-      setUser(data);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load doses");
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [encryptionKey]);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadUser();
-    }, [loadUser])
-  );
+  const user = useDatabaseStore((s) => s.user);
+  const titleColor = primaryTextColor(resolvedTheme);
+  const secondaryColor = secondaryTextColor(resolvedTheme);
+  const cardBg = cardBackgroundColor(resolvedTheme);
+  const gradientColors = getGradientColors(resolvedTheme);
+  const loading = encryptionKey != null && user === null;
 
   if (loading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.hint}>Loading doses…</Text>
-      </View>
+      <LinearGradient colors={[...gradientColors]} style={styles.gradient}>
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={titleColor} />
+          <Text style={[styles.hint, { color: secondaryColor }]}>Loading doses…</Text>
+        </View>
+      </LinearGradient>
     );
   }
 
-  if (error) {
+  if (!encryptionKey || !user) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.error}>{error}</Text>
-      </View>
+      <LinearGradient colors={[...gradientColors]} style={styles.gradient}>
+        <View style={styles.centered}>
+          <Text style={[styles.hint, { color: secondaryColor }]}>
+            {!encryptionKey
+              ? "Sign in to view and manage doses."
+              : "Loading doses…"}
+          </Text>
+        </View>
+      </LinearGradient>
     );
   }
 
-  if (!user) {
-    return (
-      <View style={styles.centered}>
-        <Text style={styles.hint}>Sign in to view and manage doses.</Text>
-      </View>
-    );
-  }
-
-  const doses: Dose[] = user.doses ?? [];
+  const allDoses: { dosage: Dosage; dose: Dose }[] = (user.dosages ?? []).flatMap(
+    (d) => d.doses.map((dose) => ({ dosage: d, dose }))
+  );
 
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.header}>
-        <Text style={styles.title}>Doses</Text>
-        <Pressable
-          style={styles.addButton}
-          onPress={() => router.push("/(tabs)/doses/create")}
-          accessibilityLabel="Add dose"
-        >
-          <Text style={styles.addButtonText}>Add dose</Text>
-        </Pressable>
-      </View>
-
-      {doses.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyTitle}>You have no doses</Text>
-          <Text style={styles.emptyMessage}>
-            Create a dose to track your medication schedule.
-          </Text>
+    <LinearGradient colors={[...gradientColors]} style={styles.gradient}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: titleColor }]}>Doses</Text>
           <Pressable
-            style={styles.primaryButton}
+            style={[styles.addButton, { backgroundColor: cardBg }]}
             onPress={() => router.push("/(tabs)/doses/create")}
-            accessibilityLabel="Create your first dose"
+            accessibilityLabel="Add dose"
           >
-            <Text style={styles.primaryButtonText}>Create your first dose</Text>
+            <Text style={[styles.addButtonText, { color: titleColor }]}>Add dose</Text>
           </Pressable>
         </View>
-      ) : (
-        <View style={styles.list}>
-          {doses.map((dose, i) => (
-            <View key={i} style={styles.card}>
-              <Text style={styles.cardMedication}>{dose.medication}</Text>
-              <Text style={styles.cardDetail}>
-                {dose.dosage} {dose.unit} · {dose.medicationType} ·{" "}
-                {dose.ingestionMethod}
-              </Text>
-              <Text style={styles.cardDetail}>
-                {dose.frequency}x/day · Scheduled{" "}
-                {new Date(dose.scheduledTime).toLocaleString()}
-              </Text>
-              {dose.takenTime && (
-                <Text style={styles.cardTaken}>
-                  Taken {new Date(dose.takenTime).toLocaleString()}
+
+        {allDoses.length === 0 ? (
+          <View style={styles.empty}>
+            <Text style={[styles.emptyTitle, { color: titleColor }]}>You have no doses</Text>
+            <Text style={[styles.emptyMessage, { color: secondaryColor }]}>
+              Create a dose to track your medication schedule.
+            </Text>
+            <Pressable
+              style={styles.primaryButton}
+              onPress={() => router.push("/(tabs)/doses/create")}
+              accessibilityLabel="Create your first dose"
+            >
+              <Text style={styles.primaryButtonText}>Create your first dose</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <View style={styles.list}>
+            {allDoses.map(({ dosage, dose }) => (
+              <Pressable
+                key={dose.id}
+                style={[styles.card, { backgroundColor: cardBg }]}
+                onPress={() => router.push(`/(tabs)/doses/${dose.id}`)}
+                accessibilityLabel={`View details for ${dosage.name} dose`}
+              >
+                <Text style={[styles.cardMedication, { color: titleColor }]}>{dosage.name}</Text>
+                <Text style={[styles.cardDetail, { color: secondaryColor }]}>
+                  {dosage.dosage} {dosage.unit} · {dosage.medicationType} ·{" "}
+                  {dosage.ingestionMethod}
                 </Text>
-              )}
-            </View>
-          ))}
-        </View>
-      )}
-    </ScrollView>
+                <Text style={[styles.cardDetail, { color: secondaryColor }]}>
+                  Every {dosage.frequencyDays} day(s) · Scheduled{" "}
+                  {new Date(dose.scheduledTime).toLocaleString()}
+                </Text>
+                {dose.takenTime && (
+                  <Text style={styles.cardTaken}>
+                    Taken {new Date(dose.takenTime).toLocaleString()}
+                  </Text>
+                )}
+              </Pressable>
+            ))}
+          </View>
+        )}
+      </ScrollView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  gradient: { flex: 1 },
   centered: {
     flex: 1,
     justifyContent: "center",
@@ -145,11 +140,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 16,
   },
-  title: { fontSize: 24, fontWeight: "600" },
+  title: { fontSize: 24, fontWeight: "700" },
   addButton: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    backgroundColor: "rgba(0,0,0,0.08)",
     borderRadius: 8,
   },
   addButtonText: { fontSize: 15, fontWeight: "600" },
@@ -157,29 +151,27 @@ const styles = StyleSheet.create({
     marginTop: 24,
     alignItems: "center",
   },
-  emptyTitle: { fontSize: 18, fontWeight: "600", marginBottom: 8 },
+  emptyTitle: { fontSize: 18, fontWeight: "700", marginBottom: 8 },
   emptyMessage: {
-    fontSize: 15,
-    color: "#666",
+    fontSize: 16,
     textAlign: "center",
     marginBottom: 20,
   },
   primaryButton: {
     paddingHorizontal: 24,
     paddingVertical: 14,
-    backgroundColor: "#6495ed",
-    borderRadius: 10,
+    backgroundColor: PRIMARY_BUTTON_BG,
+    borderRadius: 12,
   },
-  primaryButtonText: { fontSize: 16, fontWeight: "600", color: "#fff" },
+  primaryButtonText: { fontSize: 18, fontWeight: "600", color: "#fff" },
   list: { gap: 12 },
   card: {
     padding: 14,
-    backgroundColor: "#f5f5f5",
     borderRadius: 10,
   },
   cardMedication: { fontSize: 16, fontWeight: "600", marginBottom: 4 },
-  cardDetail: { fontSize: 13, color: "#555", marginBottom: 2 },
+  cardDetail: { fontSize: 13, marginBottom: 2 },
   cardTaken: { fontSize: 13, color: "#2e7d32", marginTop: 4 },
-  hint: { color: "#666", marginTop: 8 },
-  error: { color: "#c00", marginTop: 8 },
+  hint: { marginTop: 8, fontSize: 16 },
+  error: { marginTop: 8, fontSize: 14 },
 });

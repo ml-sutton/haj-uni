@@ -1,11 +1,20 @@
-import {
-  readEncryptedDBObject,
-  writeEncryptedDBObject,
-} from "@/database/database";
 import type { Dose } from "@/models/dose";
-import type { IngestionMethod, MedicationType } from "@/models/dose";
+import type {
+  Dosage,
+  IngestionMethod,
+  MedicationType,
+  Unit,
+} from "@/models/dosage";
 import { useDatabaseStore } from "@/stores/databaseStore";
-import { useTheme } from "@/contexts/theme";
+import { generateId } from "@/utils/id";
+import {
+  useTheme,
+  getGradientColors,
+  primaryTextColor,
+  inputBackgroundColor,
+  inputBorderColor,
+} from "@/contexts/theme";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
@@ -29,45 +38,77 @@ const INGESTION_METHODS: IngestionMethod[] = [
   "Intramuscular injection",
   "Other",
 ];
+const UNITS: Unit[] = ["mg", "mL", "mcg", "g", "IU", "patch", "Other"];
 
-const defaultScheduledTime = () => new Date();
+/** Parse "HH:mm" or "H:mm" into { hours, minutes }. Returns null if invalid. */
+function parseTimeOfDay(value: string): { hours: number; minutes: number } | null {
+  const trimmed = value.trim();
+  const match = trimmed.match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return null;
+  const hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
+  return { hours, minutes };
+}
+
+/** Build a Date for today at the given time (local). */
+function todayAt(hours: number, minutes: number): Date {
+  const d = new Date();
+  d.setHours(hours, minutes, 0, 0);
+  return d;
+}
+
+/** Add n days to a date (returns new Date). */
+function addDays(date: Date, days: number): Date {
+  const out = new Date(date);
+  out.setDate(out.getDate() + days);
+  return out;
+}
 
 export default function CreateDoseScreen() {
   const router = useRouter();
   const { resolvedTheme } = useTheme();
-  const encryptionKey = useDatabaseStore((s) => s.encryptionKey);
+  const user = useDatabaseStore((s) => s.user);
+  const setUser = useDatabaseStore((s) => s.setUser);
   const isDark = resolvedTheme === "dark";
+  const gradientColors = getGradientColors(resolvedTheme);
+  const labelColor = primaryTextColor(resolvedTheme);
+  const inputBg = inputBackgroundColor(resolvedTheme);
+  const inputBorder = inputBorderColor(resolvedTheme);
 
-  const [medication, setMedication] = useState("");
-  const [dosage, setDosage] = useState("");
-  const [unit, setUnit] = useState("mg");
+  const [name, setName] = useState("");
+  const [dosageAmount, setDosageAmount] = useState("");
+  const [unit, setUnit] = useState<Unit | null>(null);
   const [medicationType, setMedicationType] = useState<MedicationType | null>(
     null
   );
   const [ingestionMethod, setIngestionMethod] =
     useState<IngestionMethod | null>(null);
-  const [frequency, setFrequency] = useState("");
+  const [frequencyDays, setFrequencyDays] = useState("");
+  const [scheduledTimeOfDay, setScheduledTimeOfDay] = useState("09:00");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const saveDose = useCallback(async () => {
-    if (!encryptionKey) {
+  const saveDose = useCallback((oneOff: boolean = false) => {
+    if (!user) {
       setError("Not signed in");
       return;
     }
-    const dosageNum = parseFloat(dosage.trim());
-    const frequencyNum = parseInt(frequency.trim(), 10);
-    if (!medication.trim()) {
-      setError("Medication is required");
+    const dosageNum = parseFloat(dosageAmount.trim());
+    const freqNum = parseInt(frequencyDays.trim(), 10);
+    const time = parseTimeOfDay(scheduledTimeOfDay);
+
+    if (!name.trim()) {
+      setError("Medication name is required");
       return;
     }
     if (Number.isNaN(dosageNum) || dosageNum <= 0) {
       setError("Enter a valid dosage (number > 0)");
       return;
     }
-    if (!unit.trim()) {
-      setError("Unit is required");
+    if (!unit) {
+      setError("Select a unit");
       return;
     }
     if (!medicationType) {
@@ -78,53 +119,64 @@ export default function CreateDoseScreen() {
       setError("Select an ingestion method");
       return;
     }
-    if (Number.isNaN(frequencyNum) || frequencyNum < 1) {
-      setError("Enter a valid frequency (at least 1 per day)");
+    if (Number.isNaN(freqNum) || freqNum < 1) {
+      setError("Enter valid days between doses (at least 1)");
+      return;
+    }
+    if (!time) {
+      setError("Enter a valid schedule time (e.g. 09:00)");
       return;
     }
 
     setError(null);
     setSaving(true);
     try {
-      const user = await readEncryptedDBObject(encryptionKey);
-      const newDose: Dose = {
-        medication: medication.trim(),
+      const dosageId = generateId();
+      const baseTime = todayAt(time.hours, time.minutes);
+      const count = oneOff ? 1 : (user.preferences.dosesPerDosage ?? 7);
+      const doses: Dose[] = [];
+      for (let i = 0; i < count; i++) {
+        doses.push({
+          id: generateId(),
+          scheduledTime: addDays(baseTime, i * freqNum),
+          takenTime: null,
+        });
+      }
+
+      const newDosage: Dosage = {
+        id: dosageId,
+        name: name.trim(),
+        frequencyDays: freqNum,
         dosage: dosageNum,
-        unit: unit.trim(),
-        medicationType,
-        ingestionMethod,
-        frequency: frequencyNum,
-        scheduledTime: defaultScheduledTime(),
-        takenTime: null,
+        unit,
         notes: notes.trim() || null,
+        ingestionMethod,
+        medicationType,
+        doses,
       };
-      await writeEncryptedDBObject(
-        {
-          ...user,
-          doses: [...(user.doses ?? []), newDose],
-        },
-        encryptionKey
-      );
+      setUser({
+        ...user,
+        dosages: [...(user.dosages ?? []), newDosage],
+      });
+      setSaving(false);
       router.back();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to save dose");
-    } finally {
       setSaving(false);
     }
   }, [
-    encryptionKey,
-    medication,
-    dosage,
+    user,
+    setUser,
+    name,
+    dosageAmount,
     unit,
     medicationType,
     ingestionMethod,
-    frequency,
+    frequencyDays,
+    scheduledTimeOfDay,
     notes,
   ]);
 
-  const labelColor = isDark ? "#fff" : "#1a1a1a";
-  const inputBg = isDark ? "rgba(255,255,255,0.12)" : "#fff";
-  const inputBorder = isDark ? "rgba(255,255,255,0.3)" : "#ccc";
   const chipBg = (selected: boolean) =>
     selected
       ? isDark
@@ -136,169 +188,239 @@ export default function CreateDoseScreen() {
   const chipText = (selected: boolean) => (selected ? "#fff" : labelColor);
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 24 : 0}
+    <LinearGradient
+      colors={[...gradientColors]}
+      style={styles.gradient}
+      start={{ x: 0.5, y: 0 }}
+      end={{ x: 0.5, y: 1 }}
     >
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 24 : 0}
       >
-        <View style={styles.header}>
-          <Pressable
-            onPress={() => router.back()}
-            style={styles.backButton}
-            accessibilityLabel="Go back"
-          >
-            <Text style={[styles.backButtonText, { color: labelColor }]}>
-              ← Back
-            </Text>
-          </Pressable>
-          <Text style={[styles.title, { color: labelColor }]}>New dose</Text>
-        </View>
-
-        {error ? (
-          <View style={styles.errorBox}>
-            <Text style={styles.errorText}>{error}</Text>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.header}>
+            <Pressable
+              onPress={() => router.back()}
+              style={styles.backButton}
+              accessibilityLabel="Go back"
+            >
+              <Text style={[styles.backButtonText, { color: labelColor }]}>
+                ← Back
+              </Text>
+            </Pressable>
+            <Text style={[styles.title, { color: labelColor }]}>New dose</Text>
           </View>
-        ) : null}
 
-        <Text style={[styles.label, { color: labelColor }]}>Medication</Text>
-        <TextInput
-          style={[styles.input, { backgroundColor: inputBg, borderColor: inputBorder, color: labelColor }]}
-          value={medication}
-          onChangeText={setMedication}
-          placeholder="e.g. Estradiol"
-          placeholderTextColor={isDark ? "rgba(255,255,255,0.5)" : "#999"}
-          autoCapitalize="words"
-        />
+          {error ? (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : null}
 
-        <Text style={[styles.label, { color: labelColor }]}>Dosage</Text>
-        <TextInput
-          style={[styles.input, { backgroundColor: inputBg, borderColor: inputBorder, color: labelColor }]}
-          value={dosage}
-          onChangeText={setDosage}
-          placeholder="e.g. 2"
-          placeholderTextColor={isDark ? "rgba(255,255,255,0.5)" : "#999"}
-          keyboardType="decimal-pad"
-        />
+          <Text style={[styles.label, { color: labelColor }]}>
+            Medication name
+          </Text>
+          <TextInput
+            style={[
+              styles.input,
+              {
+                backgroundColor: inputBg,
+                borderColor: inputBorder,
+                color: labelColor,
+              },
+            ]}
+            value={name}
+            onChangeText={setName}
+            placeholder="e.g. Estradiol"
+            placeholderTextColor={isDark ? "rgba(255,255,255,0.5)" : "#999"}
+            autoCapitalize="words"
+          />
 
-        <Text style={[styles.label, { color: labelColor }]}>Unit</Text>
-        <TextInput
-          style={[styles.input, { backgroundColor: inputBg, borderColor: inputBorder, color: labelColor }]}
-          value={unit}
-          onChangeText={setUnit}
-          placeholder="e.g. mg, mL"
-          placeholderTextColor={isDark ? "rgba(255,255,255,0.5)" : "#999"}
-        />
+          <Text style={[styles.label, { color: labelColor }]}>Dosage amount</Text>
+          <TextInput
+            style={[
+              styles.input,
+              {
+                backgroundColor: inputBg,
+                borderColor: inputBorder,
+                color: labelColor,
+              },
+            ]}
+            value={dosageAmount}
+            onChangeText={setDosageAmount}
+            placeholder="e.g. 2"
+            placeholderTextColor={isDark ? "rgba(255,255,255,0.5)" : "#999"}
+            keyboardType="decimal-pad"
+          />
 
-        <Text style={[styles.label, { color: labelColor }]}>Medication type</Text>
-        <View style={styles.chipRow}>
-          {MEDICATION_TYPES.map((type) => (
-            <Pressable
-              key={type}
-              style={[
-                styles.chip,
-                { backgroundColor: chipBg(medicationType === type) },
-              ]}
-              onPress={() => setMedicationType(type)}
-            >
-              <Text
-                style={[
-                  styles.chipText,
-                  { color: chipText(medicationType === type) },
-                ]}
+          <Text style={[styles.label, { color: labelColor }]}>Unit</Text>
+          <View style={styles.chipWrap}>
+            {UNITS.map((u) => (
+              <Pressable
+                key={u}
+                style={[styles.chip, { backgroundColor: chipBg(unit === u) }]}
+                onPress={() => setUnit(u)}
               >
-                {type}
+                <Text
+                  style={[styles.chipText, { color: chipText(unit === u) }]}
+                >
+                  {u}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <Text style={[styles.label, { color: labelColor }]}>
+            Medication type
+          </Text>
+          <View style={styles.chipRow}>
+            {MEDICATION_TYPES.map((type) => (
+              <Pressable
+                key={type}
+                style={[
+                  styles.chip,
+                  { backgroundColor: chipBg(medicationType === type) },
+                ]}
+                onPress={() => setMedicationType(type)}
+              >
+                <Text
+                  style={[
+                    styles.chipText,
+                    { color: chipText(medicationType === type) },
+                  ]}
+                >
+                  {type}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <Text style={[styles.label, { color: labelColor }]}>
+            Ingestion method
+          </Text>
+          <View style={styles.chipWrap}>
+            {INGESTION_METHODS.map((method) => (
+              <Pressable
+                key={method}
+                style={[
+                  styles.chip,
+                  { backgroundColor: chipBg(ingestionMethod === method) },
+                ]}
+                onPress={() => setIngestionMethod(method)}
+              >
+                <Text
+                  style={[
+                    styles.chipText,
+                    { color: chipText(ingestionMethod === method) },
+                  ]}
+                >
+                  {method}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <Text style={[styles.label, { color: labelColor }]}>
+            Days between doses (frequency)
+          </Text>
+          <TextInput
+            style={[
+              styles.input,
+              {
+                backgroundColor: inputBg,
+                borderColor: inputBorder,
+                color: labelColor,
+              },
+            ]}
+            value={frequencyDays}
+            onChangeText={setFrequencyDays}
+            placeholder="e.g. 1"
+            placeholderTextColor={isDark ? "rgba(255,255,255,0.5)" : "#999"}
+            keyboardType="number-pad"
+          />
+
+          <Text style={[styles.label, { color: labelColor }]}>
+            Schedule time (when to take this dose)
+          </Text>
+          <TextInput
+            style={[
+              styles.input,
+              {
+                backgroundColor: inputBg,
+                borderColor: inputBorder,
+                color: labelColor,
+              },
+            ]}
+            value={scheduledTimeOfDay}
+            onChangeText={setScheduledTimeOfDay}
+            placeholder="09:00"
+            placeholderTextColor={isDark ? "rgba(255,255,255,0.5)" : "#999"}
+            keyboardType="numbers-and-punctuation"
+          />
+          <Text style={[styles.hint, { color: isDark ? "rgba(255,255,255,0.7)" : "#666" }]}>
+            Use 24-hour format (e.g. 09:00 or 14:30)
+          </Text>
+
+          <Text style={[styles.label, { color: labelColor }]}>
+            Notes (optional)
+          </Text>
+          <TextInput
+            style={[
+              styles.input,
+              styles.inputMultiline,
+              {
+                backgroundColor: inputBg,
+                borderColor: inputBorder,
+                color: labelColor,
+              },
+            ]}
+            value={notes}
+            onChangeText={setNotes}
+            placeholder="Any notes"
+            placeholderTextColor={isDark ? "rgba(255,255,255,0.5)" : "#999"}
+            multiline
+            numberOfLines={2}
+          />
+
+          <View style={styles.actions}>
+            <Pressable
+              style={[styles.cancelButton, { borderColor: inputBorder }]}
+              onPress={() => router.back()}
+              disabled={saving}
+            >
+              <Text style={[styles.cancelButtonText, { color: labelColor }]}>
+                Cancel
               </Text>
             </Pressable>
-          ))}
-        </View>
-
-        <Text style={[styles.label, { color: labelColor }]}>
-          Ingestion method
-        </Text>
-        <View style={styles.chipWrap}>
-          {INGESTION_METHODS.map((method) => (
             <Pressable
-              key={method}
-              style={[
-                styles.chip,
-                { backgroundColor: chipBg(ingestionMethod === method) },
-              ]}
-              onPress={() => setIngestionMethod(method)}
+              style={styles.saveButton}
+              onPress={() => saveDose(false)}
+              onLongPress={() => saveDose(true)}
+              disabled={saving}
+              accessibilityLabel="Save dose. Long press for a single one-off dose."
             >
-              <Text
-                style={[
-                  styles.chipText,
-                  { color: chipText(ingestionMethod === method) },
-                ]}
-              >
-                {method}
-              </Text>
+              {saving ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.saveButtonText}>Save dose</Text>
+              )}
             </Pressable>
-          ))}
-        </View>
-
-        <Text style={[styles.label, { color: labelColor }]}>
-          Times per day (frequency)
-        </Text>
-        <TextInput
-          style={[styles.input, { backgroundColor: inputBg, borderColor: inputBorder, color: labelColor }]}
-          value={frequency}
-          onChangeText={setFrequency}
-          placeholder="e.g. 1"
-          placeholderTextColor={isDark ? "rgba(255,255,255,0.5)" : "#999"}
-          keyboardType="number-pad"
-        />
-
-        <Text style={[styles.label, { color: labelColor }]}>Notes (optional)</Text>
-        <TextInput
-          style={[
-            styles.input,
-            styles.inputMultiline,
-            { backgroundColor: inputBg, borderColor: inputBorder, color: labelColor },
-          ]}
-          value={notes}
-          onChangeText={setNotes}
-          placeholder="Any notes"
-          placeholderTextColor={isDark ? "rgba(255,255,255,0.5)" : "#999"}
-          multiline
-          numberOfLines={2}
-        />
-
-        <View style={styles.actions}>
-          <Pressable
-            style={[styles.cancelButton, { borderColor: inputBorder }]}
-            onPress={() => router.back()}
-            disabled={saving}
-          >
-            <Text style={[styles.cancelButtonText, { color: labelColor }]}>
-              Cancel
-            </Text>
-          </Pressable>
-          <Pressable
-            style={styles.saveButton}
-            onPress={saveDose}
-            disabled={saving}
-            accessibilityLabel="Save dose"
-          >
-            {saving ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.saveButtonText}>Save dose</Text>
-            )}
-          </Pressable>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  gradient: { flex: 1 },
   container: { flex: 1 },
   scroll: { flex: 1 },
   content: { padding: 20, paddingBottom: 40 },
@@ -319,6 +441,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     marginTop: 12,
   },
+  hint: { fontSize: 12, marginTop: 4, marginBottom: 4 },
   input: {
     borderWidth: 1,
     borderRadius: 10,

@@ -13,7 +13,8 @@ const safePreferencesSchema = z.object({
 const securePreferencesSchema = z.object({
   selfDestructAfterFailedAttempts: z.number(),
   lastRecoveryVerifiedAt: z.coerce.date().nullable(),
-  
+  /** Number of doses to create when creating a new dosage. Long-press save = 1 one-off dose. */
+  dosesPerDosage: z.number().min(1).max(999).default(7),
 });
 
 type SafePreferences = z.infer<typeof safePreferencesSchema>;
