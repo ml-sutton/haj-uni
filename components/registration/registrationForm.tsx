@@ -1,9 +1,3 @@
-import {
-  registerPin,
-  writeEncryptedDBObject,
-  writeSafeDBObject,
-} from "@/database/database";
-import { useDatabaseStore } from "@/stores/databaseStore";
 import { TitleBar } from "@/components/TitleBar";
 import { PinStep } from "@/components/registration/pinStep";
 import { PreferencesStep } from "@/components/registration/preferencesStep";
@@ -15,11 +9,16 @@ import {
 } from "@/components/registration/registrationTypes";
 import { UsernameStep } from "@/components/registration/usernameStep";
 import {
-  useTheme,
   getGradientColors,
   primaryTextColor,
-  PRIMARY_BUTTON_BG,
+  useTheme
 } from "@/contexts/theme";
+import {
+  registerPin,
+  writeEncryptedDBObject,
+  writeSafeDBObject,
+} from "@/database/database";
+import { useDatabaseStore } from "@/stores/databaseStore";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -122,6 +121,7 @@ export function RegistrationForm({
         username: formData.username.trim(),
         pronouns: formData.pronouns,
         dosages: [],
+        notes: [],
         preferences: formData.securePreferences,
       };
       await writeEncryptedDBObject(user, key);

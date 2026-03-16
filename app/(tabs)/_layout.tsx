@@ -1,11 +1,11 @@
+import { TitleBar } from "@/components/TitleBar";
 import { useTheme } from "@/contexts/theme";
 import { useStoreSync } from "@/stores/storeSync";
-import { Tabs } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { Tabs } from "expo-router";
 import { useMemo } from "react";
 import { StyleSheet } from "react-native";
-import { TitleBar } from "@/components/TitleBar";
 
 const DARK_GRADIENT = ["#6495ed", "#73c2fb"] as const;
 const LIGHT_GRADIENT = ["#FFA4B6", "#F19CBB"] as const;
@@ -49,7 +49,7 @@ export default function TabsLayout() {
   return (
     <Tabs screenOptions={tabBarOptions}>
       <Tabs.Screen
-        name="index"
+        name="home"
         options={{
           title: "Home",
           tabBarIcon: ({ color, size }) => (
@@ -72,6 +72,15 @@ export default function TabsLayout() {
           title: "Levels",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="analytics" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="notes"
+        options={{
+          title: "Notes",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="document-text" size={size} color={color} />
           ),
         }}
       />

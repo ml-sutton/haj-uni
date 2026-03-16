@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { dosageSchema } from "./dosage";
+import { noteSchema } from "./note";
 import { securePreferencesSchema } from "./preferences";
 
 const userSchema = z.object({
@@ -7,6 +8,7 @@ const userSchema = z.object({
   pronouns: z.array(z.string()),
   dosages: z.array(dosageSchema),
   preferences: securePreferencesSchema,
+  notes: z.array(noteSchema).default([]),
 });
 
 type User = z.infer<typeof userSchema>;

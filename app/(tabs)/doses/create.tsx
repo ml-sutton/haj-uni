@@ -28,6 +28,8 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { TimeSelector } from "@/components/doses/dateSelector";
+import { scheduleDoseReminders } from "@/service/notificationService";
 
 const MEDICATION_TYPES: MedicationType[] = ["Hormone", "Blocker", "Helper"];
 const INGESTION_METHODS: IngestionMethod[] = [
@@ -65,6 +67,16 @@ function addDays(date: Date, days: number): Date {
   return out;
 }
 
+/** Format 24h "HH:mm" for display as 12h (e.g. "9:00 AM"). */
+function formatTime24To12(value: string): string {
+  const t = parseTimeOfDay(value);
+  if (!t) return value;
+  const { hours, minutes } = t;
+  const hour12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+  const ampm = hours < 12 ? "AM" : "PM";
+  return `${hour12}:${String(minutes).padStart(2, "0")} ${ampm}`;
+}
+
 export default function CreateDoseScreen() {
   const router = useRouter();
   const { resolvedTheme } = useTheme();
@@ -86,6 +98,7 @@ export default function CreateDoseScreen() {
     useState<IngestionMethod | null>(null);
   const [frequencyDays, setFrequencyDays] = useState("");
   const [scheduledTimeOfDay, setScheduledTimeOfDay] = useState("09:00");
+  const [timeSelectorVisible, setTimeSelectorVisible] = useState(false);
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -132,7 +145,11 @@ export default function CreateDoseScreen() {
     setSaving(true);
     try {
       const dosageId = generateId();
-      const baseTime = todayAt(time.hours, time.minutes);
+      let baseTime = todayAt(time.hours, time.minutes);
+      // If the scheduled time has already passed today, start from tomorrow
+      if (baseTime.getTime() <= Date.now()) {
+        baseTime = addDays(baseTime, 1);
+      }
       const count = oneOff ? 1 : (user.preferences.dosesPerDosage ?? 7);
       const doses: Dose[] = [];
       for (let i = 0; i < count; i++) {
@@ -157,6 +174,9 @@ export default function CreateDoseScreen() {
       setUser({
         ...user,
         dosages: [...(user.dosages ?? []), newDosage],
+      });
+      scheduleDoseReminders(doses).catch(() => {
+        // Non-blocking: reminders are best-effort
       });
       setSaving(false);
       router.back();
@@ -349,24 +369,30 @@ export default function CreateDoseScreen() {
           <Text style={[styles.label, { color: labelColor }]}>
             Schedule time (when to take this dose)
           </Text>
-          <TextInput
+          <Pressable
             style={[
               styles.input,
+              styles.timeButton,
               {
                 backgroundColor: inputBg,
                 borderColor: inputBorder,
-                color: labelColor,
               },
             ]}
+            onPress={() => setTimeSelectorVisible(true)}
+          >
+            <Text style={[styles.timeButtonText, { color: labelColor }]}>
+              {formatTime24To12(scheduledTimeOfDay)}
+            </Text>
+            <Text style={[styles.timeButtonHint, { color: isDark ? "rgba(255,255,255,0.6)" : "#888" }]}>
+              Tap to change
+            </Text>
+          </Pressable>
+          <TimeSelector
+            visible={timeSelectorVisible}
+            onClose={() => setTimeSelectorVisible(false)}
             value={scheduledTimeOfDay}
-            onChangeText={setScheduledTimeOfDay}
-            placeholder="09:00"
-            placeholderTextColor={isDark ? "rgba(255,255,255,0.5)" : "#999"}
-            keyboardType="numbers-and-punctuation"
+            onSelect={setScheduledTimeOfDay}
           />
-          <Text style={[styles.hint, { color: isDark ? "rgba(255,255,255,0.7)" : "#666" }]}>
-            Use 24-hour format (e.g. 09:00 or 14:30)
-          </Text>
 
           <Text style={[styles.label, { color: labelColor }]}>
             Notes (optional)
@@ -449,6 +475,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
   },
+  timeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  timeButtonText: { fontSize: 16, fontWeight: "600" },
+  timeButtonHint: { fontSize: 13 },
   inputMultiline: { minHeight: 60, textAlignVertical: "top" },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
