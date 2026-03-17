@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
   dayLabel: { fontSize: 12, fontWeight: "600" },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.78)",
+    backgroundColor: "#1a1a1a",
     justifyContent: "center",
     alignItems: "center",
     padding: 24,

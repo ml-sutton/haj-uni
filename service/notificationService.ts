@@ -1,10 +1,12 @@
+import {
+  GetNotificationMessage,
+  getNotificationHeader,
+} from "@/const/notificationMessages";
 import type { Dose } from "@/models/dose";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
 const DOSE_CHANNEL_ID = "dose-reminders";
-const REMINDER_TITLE = "Cool shark fact";
-const REMINDER_BODY = "Cool shark fact";
 
 /** Ensure notification permissions and Android channel are set up. */
 export async function ensureNotificationSetup(): Promise<boolean> {
@@ -23,15 +25,32 @@ export async function ensureNotificationSetup(): Promise<boolean> {
   return status === "granted";
 }
 
+export interface ScheduleDoseRemindersOptions {
+  /** When true, uses discrete notification copy (e.g. generic "shark fact" style). */
+  isDiscrete?: boolean;
+}
+
 /**
  * Schedule two local notifications per dose:
  * - One 5 minutes before the scheduled dose time
  * - One at the scheduled dose time
- * Both use the content "cool shark fact".
+ * Title and body come from notificationMessages (respects isDiscrete).
  */
-export async function scheduleDoseReminders(doses: Dose[]): Promise<void> {
+export async function scheduleDoseReminders(
+  doses: Dose[],
+  options?: ScheduleDoseRemindersOptions
+): Promise<void> {
   const hasPermission = await ensureNotificationSetup();
   if (!hasPermission) return;
+
+  const isDiscrete = options?.isDiscrete ?? false;
+  const title = getNotificationHeader(isDiscrete);
+  const body = GetNotificationMessage(isDiscrete);
+
+  const triggerBase = {
+    type: Notifications.SchedulableTriggerInputTypes.DATE as const,
+    ...(Platform.OS === "android" && { channelId: DOSE_CHANNEL_ID }),
+  };
 
   const now = Date.now();
   const fiveMinutesMs = 5 * 60 * 1000;
@@ -43,37 +62,26 @@ export async function scheduleDoseReminders(doses: Dose[]): Promise<void> {
         : new Date(dose.scheduledTime);
     const scheduledTime = scheduledDate.getTime();
 
-    // Only schedule if in the future
     if (scheduledTime <= now) continue;
 
     const reminder5MinBefore = new Date(scheduledTime - fiveMinutesMs);
 
-    // 5 minutes before
     if (reminder5MinBefore.getTime() > now) {
       await Notifications.scheduleNotificationAsync({
         identifier: `${dose.id}-5min`,
-        content: {
-          title: REMINDER_TITLE,
-          body: REMINDER_BODY,
-          channelId: Platform.OS === "android" ? DOSE_CHANNEL_ID : undefined,
-        },
+        content: { title, body },
         trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          ...triggerBase,
           date: reminder5MinBefore,
         },
       });
     }
 
-    // On scheduled time
     await Notifications.scheduleNotificationAsync({
       identifier: `${dose.id}-ontime`,
-      content: {
-        title: REMINDER_TITLE,
-        body: REMINDER_BODY,
-        channelId: Platform.OS === "android" ? DOSE_CHANNEL_ID : undefined,
-      },
+      content: { title, body },
       trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        ...triggerBase,
         date: scheduledDate,
       },
     });

@@ -182,7 +182,7 @@ export function TimeSelector({ visible, onClose, value, onSelect }: TimeSelector
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.7)",
+    backgroundColor: "#1a1a1a",
     justifyContent: "center",
     alignItems: "center",
     padding: 24,

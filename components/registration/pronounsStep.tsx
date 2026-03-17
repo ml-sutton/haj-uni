@@ -1,4 +1,4 @@
-import { PRONOUN_OPTIONS } from "@/components/registration/registrationTypes";
+import { Pronouns } from "@/const/pronouns";
 import { useTheme } from "@/contexts/theme";
 import React, { useCallback, useState } from "react";
 import {
@@ -86,7 +86,7 @@ export function PronounsStep({
               </Pressable>
             </View>
             <ScrollView style={styles.optionsList}>
-              {PRONOUN_OPTIONS.map((option) => {
+              {Pronouns.map((option) => {
                 const selected = value.includes(option);
                 return (
                   <Pressable
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.78)",
+    backgroundColor: "#1a1a1a",
     justifyContent: "flex-end",
   },
   modalContent: {

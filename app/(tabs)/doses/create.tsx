@@ -29,6 +29,7 @@ import {
   View,
 } from "react-native";
 import { TimeSelector } from "@/components/doses/dateSelector";
+import { readSafeDBObject } from "@/database/database";
 import { scheduleDoseReminders } from "@/service/notificationService";
 
 const MEDICATION_TYPES: MedicationType[] = ["Hormone", "Blocker", "Helper"];
@@ -103,7 +104,7 @@ export default function CreateDoseScreen() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const saveDose = useCallback((oneOff: boolean = false) => {
+  const saveDose = useCallback(async (oneOff: boolean = false) => {
     if (!user) {
       setError("Not signed in");
       return;
@@ -175,7 +176,10 @@ export default function CreateDoseScreen() {
         ...user,
         dosages: [...(user.dosages ?? []), newDosage],
       });
-      scheduleDoseReminders(doses).catch(() => {
+      const safePrefs = await readSafeDBObject().catch(() => null);
+      scheduleDoseReminders(doses, {
+        isDiscrete: safePrefs?.discreteMode ?? false,
+      }).catch(() => {
         // Non-blocking: reminders are best-effort
       });
       setSaving(false);

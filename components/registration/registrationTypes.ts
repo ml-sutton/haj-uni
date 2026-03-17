@@ -32,15 +32,4 @@ export const DEFAULT_REGISTRATION_FORM_DATA: RegistrationFormData = {
   pin: "",
 };
 
-export const PRONOUN_OPTIONS: readonly string[] = [
-  "he/him",
-  "she/her",
-  "they/them",
-  "xe/xem",
-  "ze/zir",
-  "other",
-] as const;
-
-export type PronounOption = (typeof PRONOUN_OPTIONS)[number];
-
 export const PIN_LENGTH = 6;
