@@ -99,6 +99,15 @@ export async function hasDatabaseObject(): Promise<boolean> {
   return raw !== null;
 }
 
+/** Permanently removes all stored app data (encrypted user data, salt, safe prefs). Use for self-destruct only. */
+export async function clearAllData(): Promise<void> {
+  await AsyncStorage.multiRemove([
+    ENCRYPTED_STORAGE_KEY,
+    SALT_STORAGE_KEY,
+    SAFE_STORAGE_KEY,
+  ]);
+}
+
 /** Read safe (plaintext) data: SafePreferences. */
 export async function readSafeDBObject(): Promise<SafePreferences> {
   const raw = await AsyncStorage.getItem(SAFE_STORAGE_KEY);

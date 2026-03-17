@@ -4,6 +4,7 @@ const safePreferencesSchema = z.object({
   theme: z.enum(["light", "dark", "system"]),
   highContrast: z.boolean(),
   discreteMode: z.boolean(),
+  selfDestructEnabled: z.boolean(),
   quickExitEnabled: z.boolean(),
   silentMode: z.boolean(),
   notificationsEnabled: z.boolean(),
@@ -28,4 +29,5 @@ export function validateSecurePreferences(data: unknown): SecurePreferences {
   return securePreferencesSchema.parse(data);
 }
 
-export { safePreferencesSchema, securePreferencesSchema,type SafePreferences, type SecurePreferences };
+export { safePreferencesSchema, securePreferencesSchema, type SafePreferences, type SecurePreferences };
+

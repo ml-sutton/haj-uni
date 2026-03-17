@@ -131,6 +131,14 @@ export function PreferencesStep({
         />
       </View>
       <View style={[styles.toggleRow, { borderBottomColor: toggleBorderColor }]}>
+        <Text style={[styles.toggleLabel, { color: labelColor }]}>Self-destruct enabled</Text>
+        <Switch
+          value={safePreferences.selfDestructEnabled}
+          onValueChange={(selfDestructEnabled) => setSafe({ selfDestructEnabled })}
+          accessibilityLabel="Self-destruct enabled"
+        />
+      </View>
+      <View style={[styles.toggleRow, { borderBottomColor: toggleBorderColor }]}>
         <Text style={[styles.toggleLabel, { color: labelColor }]}>Quick exit</Text>
         <Switch
           value={safePreferences.quickExitEnabled}

@@ -1,10 +1,11 @@
 import { TitleBar } from "@/components/TitleBar";
 import { useTheme } from "@/contexts/theme";
 import { useStoreSync } from "@/stores/storeSync";
+import { readSafeDBObject } from "@/database/database";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Tabs } from "expo-router";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { StyleSheet } from "react-native";
 
 const DARK_GRADIENT = ["#6495ed", "#73c2fb"] as const;
@@ -17,8 +18,17 @@ const DARK_BORDER = "#f19cbb";
 const LIGHT_BORDER = "#7fbfe9";
 
 export default function TabsLayout() {
-  const { resolvedTheme } = useTheme();
+  const { resolvedTheme, setTheme, setHighContrast } = useTheme();
   useStoreSync();
+
+  useEffect(() => {
+    readSafeDBObject()
+      .then((prefs) => {
+        setTheme(prefs.theme);
+        setHighContrast(prefs.highContrast);
+      })
+      .catch(() => {});
+  }, [setTheme, setHighContrast]);
 
   const gradientColors = useMemo(
     () => (resolvedTheme === "dark" ? DARK_GRADIENT : LIGHT_GRADIENT),
