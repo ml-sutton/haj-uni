@@ -1,11 +1,11 @@
 import { TitleBar } from "@/components/TitleBar";
 import { useTheme } from "@/contexts/theme";
 import { useStoreSync } from "@/stores/storeSync";
-import { readSafeDBObject } from "@/database/database";
+import { useSafePreferencesStore } from "@/stores/safePreferencesStore";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Tabs } from "expo-router";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { StyleSheet } from "react-native";
 
 const DARK_GRADIENT = ["#6495ed", "#73c2fb"] as const;
@@ -20,14 +20,16 @@ const LIGHT_BORDER = "#7fbfe9";
 export default function TabsLayout() {
   const { resolvedTheme, setTheme, setHighContrast } = useTheme();
   useStoreSync();
+  const hasHydratedRef = useRef(false);
 
   useEffect(() => {
-    readSafeDBObject()
-      .then((prefs) => {
-        setTheme(prefs.theme);
-        setHighContrast(prefs.highContrast);
-      })
-      .catch(() => {});
+    if (hasHydratedRef.current) return;
+    hasHydratedRef.current = true;
+    useSafePreferencesStore.getState().hydrateFromDb().then(() => {
+      const prefs = useSafePreferencesStore.getState();
+      setTheme(prefs.theme);
+      setHighContrast(prefs.highContrast);
+    });
   }, [setTheme, setHighContrast]);
 
   const gradientColors = useMemo(
@@ -59,7 +61,7 @@ export default function TabsLayout() {
   return (
     <Tabs screenOptions={tabBarOptions}>
       <Tabs.Screen
-        name="home"
+        name="index"
         options={{
           title: "Home",
           tabBarIcon: ({ color, size }) => (

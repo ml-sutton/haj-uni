@@ -5,21 +5,13 @@ import {
   secondaryTextColor,
 } from "@/contexts/theme";
 import type { SafePreferences } from "@/models/preferences";
-import { readSafeDBObject, writeSafeDBObject } from "@/database/database";
-import { DEFAULT_SAFE_PREFERENCES } from "@/components/registration/registrationTypes";
+import { useSafePreferencesStore } from "@/stores/safePreferencesStore";
+import { useShallow } from "zustand/react/shallow";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useCallback, useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  View,
-} from "react-native";
+import { useCallback } from "react";
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 
 const themeButtonBg = (isDark: boolean, active: boolean) =>
   active ? (isDark ? "rgba(0,102,204,0.4)" : "rgba(0,102,204,0.15)") : isDark ? "rgba(255,255,255,0.15)" : "#f0f0f0";
@@ -34,46 +26,21 @@ export default function AppearanceSettings() {
   const gradientColors = getGradientColors(resolvedTheme);
   const router = useRouter();
 
-  const [safePrefs, setSafePrefs] = useState<SafePreferences | null>(null);
-  const [loading, setLoading] = useState(true);
+  const safePrefs = useSafePreferencesStore(
+    useShallow((s) => ({ theme: s.theme, highContrast: s.highContrast }))
+  );
+  const updateSafePreferences = useSafePreferencesStore((s) => s.updateSafePreferences);
 
-  useEffect(() => {
-    let cancelled = false;
-    readSafeDBObject()
-      .then((prefs) => {
-        if (!cancelled) setSafePrefs(prefs);
-      })
-      .catch(() => {
-        if (!cancelled) setSafePrefs(DEFAULT_SAFE_PREFERENCES);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const updateSafe = useCallback((patch: Partial<SafePreferences>) => {
-    setSafePrefs((prev) => {
-      if (!prev) return prev;
-      const next = { ...prev, ...patch };
-      writeSafeDBObject(next).catch(() => {});
-      setTheme(next.theme);
-      setHighContrast(next.highContrast);
-      return next;
-    });
-  }, [setTheme, setHighContrast]);
-
-  if (loading || !safePrefs) {
-    return (
-      <LinearGradient colors={[...gradientColors]} style={styles.gradient}>
-        <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color={titleColor} />
-        </View>
-      </LinearGradient>
-    );
-  }
+  const updateSafe = useCallback(
+    (patch: Partial<SafePreferences>) => {
+      const nextTheme = patch.theme ?? safePrefs.theme;
+      const nextHighContrast = patch.highContrast ?? safePrefs.highContrast;
+      setTheme(nextTheme);
+      setHighContrast(nextHighContrast);
+      updateSafePreferences(patch);
+    },
+    [setTheme, setHighContrast, safePrefs.theme, safePrefs.highContrast, updateSafePreferences]
+  );
 
   return (
     <LinearGradient colors={[...gradientColors]} style={styles.gradient}>

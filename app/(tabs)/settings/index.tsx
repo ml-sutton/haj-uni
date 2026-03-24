@@ -3,22 +3,12 @@ import {
   getGradientColors,
   primaryTextColor,
   secondaryTextColor,
-  ERROR_TEXT_COLOR,
 } from "@/contexts/theme";
 import { useDatabaseStore } from "@/stores/databaseStore";
-import { clearAllData } from "@/database/database";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useCallback, useState } from "react";
-import {
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 function SettingsLink({
   href,
@@ -68,61 +58,6 @@ export default function SettingsIndex() {
   const secondaryColor = secondaryTextColor(resolvedTheme);
   const gradientColors = getGradientColors(resolvedTheme);
   const router = useRouter();
-  const clearAuth = useDatabaseStore((s) => s.clearAuth);
-  const [confirmStep, setConfirmStep] = useState(0);
-
-  const handleSelfDestruct = useCallback(() => {
-    if (confirmStep === 0) {
-      Alert.alert(
-        "Self-destruct",
-        "This will permanently delete all your data and you will need to set up the app again. Are you sure?",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Continue",
-            style: "destructive",
-            onPress: () => setConfirmStep(1),
-          },
-        ]
-      );
-      return;
-    }
-    if (confirmStep === 1) {
-      Alert.alert(
-        "Second confirmation",
-        "All your doses, notes, and preferences will be erased. This cannot be undone. Confirm again?",
-        [
-          { text: "Cancel", style: "cancel", onPress: () => setConfirmStep(0) },
-          {
-            text: "I understand",
-            style: "destructive",
-            onPress: () => setConfirmStep(2),
-          },
-        ]
-      );
-      return;
-    }
-    if (confirmStep === 2) {
-      Alert.alert(
-        "Final confirmation",
-        "Last chance. Tap \"Delete everything\" to permanently destroy all data and return to the start screen.",
-        [
-          { text: "Cancel", style: "cancel", onPress: () => setConfirmStep(0) },
-          {
-            text: "Delete everything",
-            style: "destructive",
-            onPress: async () => {
-              setConfirmStep(0);
-              await clearAllData();
-              clearAuth();
-              router.replace("/getStarted" as any);
-            },
-          },
-        ]
-      );
-    }
-  }, [confirmStep, clearAuth, router]);
-
   return (
     <LinearGradient colors={[...gradientColors]} style={styles.gradient}>
       <ScrollView
@@ -152,6 +87,13 @@ export default function SettingsIndex() {
           titleColor={titleColor}
           secondaryColor={secondaryColor}
         />
+        <SettingsLink
+          href="/settings/dangerzone"
+          label="Danger zone"
+          icon="warning"
+          titleColor={titleColor}
+          secondaryColor={secondaryColor}
+        />
 
         <SectionHeader title="About" color={secondaryColor} />
         <SettingsLink
@@ -168,22 +110,6 @@ export default function SettingsIndex() {
           titleColor={titleColor}
           secondaryColor={secondaryColor}
         />
-
-        <View style={styles.destructSection}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.destructButton,
-              pressed && styles.destructPressed,
-            ]}
-            onPress={handleSelfDestruct}
-          >
-            <Ionicons name="trash" size={22} color="#fff" />
-            <Text style={styles.destructLabel}>Self-destruct</Text>
-          </Pressable>
-          <Text style={[styles.destructHint, { color: secondaryColor }]}>
-            Permanently delete all data (requires 3 confirmations).
-          </Text>
-        </View>
       </ScrollView>
     </LinearGradient>
   );
@@ -226,30 +152,5 @@ const styles = StyleSheet.create({
   linkLabel: {
     fontSize: 17,
     fontWeight: "500",
-  },
-  destructSection: {
-    marginTop: 28,
-    alignItems: "center",
-  },
-  destructButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    backgroundColor: ERROR_TEXT_COLOR,
-    borderRadius: 12,
-  },
-  destructPressed: { opacity: 0.9 },
-  destructLabel: {
-    color: "#fff",
-    fontSize: 17,
-    fontWeight: "600",
-  },
-  destructHint: {
-    marginTop: 10,
-    fontSize: 13,
-    textAlign: "center",
-    maxWidth: 280,
   },
 });

@@ -29,7 +29,7 @@ import {
   View,
 } from "react-native";
 import { TimeSelector } from "@/components/doses/dateSelector";
-import { readSafeDBObject } from "@/database/database";
+import { getSafePreferences } from "@/stores/safePreferencesStore";
 import { scheduleDoseReminders } from "@/service/notificationService";
 
 const MEDICATION_TYPES: MedicationType[] = ["Hormone", "Blocker", "Helper"];
@@ -176,9 +176,9 @@ export default function CreateDoseScreen() {
         ...user,
         dosages: [...(user.dosages ?? []), newDosage],
       });
-      const safePrefs = await readSafeDBObject().catch(() => null);
+      const safePrefs = getSafePreferences();
       scheduleDoseReminders(doses, {
-        isDiscrete: safePrefs?.discreteMode ?? false,
+        isDiscrete: safePrefs.discreteMode,
       }).catch(() => {
         // Non-blocking: reminders are best-effort
       });

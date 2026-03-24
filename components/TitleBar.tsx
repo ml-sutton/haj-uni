@@ -1,3 +1,4 @@
+import { triggerQuickExit } from "@/service/privacyService";
 import { useTheme } from "@/contexts/theme";
 import { LinearGradient } from "expo-linear-gradient";
 import { usePathname, useRouter } from "expo-router";
@@ -92,12 +93,11 @@ export function TitleBar({ title: titleOverride }: TitleBarProps = {}) {
           ]}
           onPress={() => router.replace("/(tabs)")}
           onLongPress={() => {
-            if (Platform.OS === "android") {
-              BackHandler.exitApp();
-            }
-            if (Platform.OS === "ios") {
-              throw new Error("Panic: user-initiated crash");
-            }
+            triggerQuickExit(() => router.replace("/login")).then((didQuickExit) => {
+              if (didQuickExit) return;
+              if (Platform.OS === "android") BackHandler.exitApp();
+              if (Platform.OS === "ios") throw new Error("Panic: user-initiated crash");
+            });
           }}
         >
           <LineartSvg

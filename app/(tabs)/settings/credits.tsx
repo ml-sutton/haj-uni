@@ -4,6 +4,7 @@ import {
   primaryTextColor,
   secondaryTextColor,
 } from "@/contexts/theme";
+import { Credits } from "@/const/credits";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -32,9 +33,26 @@ export default function CreditsScreen() {
       >
         <Text style={[styles.title, { color: titleColor }]}>Credits</Text>
         <Text style={[styles.subtitle, { color: secondaryColor }]}>
-          Built with Expo, React Native, and other open-source tools. Credits and
-          acknowledgements will be listed here.
+          Thank you to everyone who helped bring HAJ to life.
         </Text>
+        <View style={styles.list}>
+          {Credits.map((credit) => (
+            <View
+              key={`${credit.alias}-${credit.title}`}
+              style={styles.creditCard}
+            >
+              <Text style={[styles.alias, { color: titleColor }]}>
+                {credit.alias}
+              </Text>
+              <Text style={[styles.pronouns, { color: secondaryColor }]}>
+                {credit.pronouns}
+              </Text>
+              <Text style={[styles.role, { color: secondaryColor }]}>
+                {credit.title}
+              </Text>
+            </View>
+          ))}
+        </View>
       </ScrollView>
     </LinearGradient>
   );
@@ -54,4 +72,14 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
   title: { fontSize: 26, fontWeight: "700", marginBottom: 8 },
   subtitle: { fontSize: 17, lineHeight: 24 },
+  list: { marginTop: 16, gap: 12 },
+  creditCard: {
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+  },
+  alias: { fontSize: 18, fontWeight: "700" },
+  pronouns: { marginTop: 4, fontSize: 14 },
+  role: { marginTop: 8, fontSize: 16, fontWeight: "600" },
 });

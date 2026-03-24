@@ -5,16 +5,15 @@ import {
   secondaryTextColor,
 } from "@/contexts/theme";
 import type { SafePreferences } from "@/models/preferences";
-import { readSafeDBObject, writeSafeDBObject } from "@/database/database";
 import { persistStoreToDatabase } from "@/stores/databaseStore";
 import { useDatabaseStore } from "@/stores/databaseStore";
-import { DEFAULT_SAFE_PREFERENCES } from "@/components/registration/registrationTypes";
+import { useSafePreferencesStore } from "@/stores/safePreferencesStore";
+import { useShallow } from "zustand/react/shallow";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import {
-  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -34,34 +33,22 @@ export default function PrivacySettings() {
   const user = useDatabaseStore((s) => s.user);
   const setUser = useDatabaseStore((s) => s.setUser);
 
-  const [safePrefs, setSafePrefs] = useState<SafePreferences | null>(null);
-  const [loading, setLoading] = useState(true);
+  const safePrefs = useSafePreferencesStore(
+    useShallow((s) => ({
+      discreteMode: s.discreteMode,
+      selfDestructEnabled: s.selfDestructEnabled,
+      quickExitEnabled: s.quickExitEnabled,
+      silentMode: s.silentMode,
+      notificationsEnabled: s.notificationsEnabled,
+      biometricEnabled: s.biometricEnabled,
+    }))
+  );
+  const updateSafePreferences = useSafePreferencesStore((s) => s.updateSafePreferences);
 
-  useEffect(() => {
-    let cancelled = false;
-    readSafeDBObject()
-      .then((prefs) => {
-        if (!cancelled) setSafePrefs(prefs);
-      })
-      .catch(() => {
-        if (!cancelled) setSafePrefs(DEFAULT_SAFE_PREFERENCES);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const updateSafe = useCallback((patch: Partial<SafePreferences>) => {
-    setSafePrefs((prev) => {
-      if (!prev) return prev;
-      const next = { ...prev, ...patch };
-      writeSafeDBObject(next).catch(() => {});
-      return next;
-    });
-  }, []);
+  const updateSafe = useCallback(
+    (patch: Partial<SafePreferences>) => updateSafePreferences(patch),
+    [updateSafePreferences]
+  );
 
   const updateSecure = useCallback(
     (patch: Partial<NonNullable<typeof user>["preferences"]>) => {
@@ -72,16 +59,6 @@ export default function PrivacySettings() {
     },
     [user, setUser]
   );
-
-  if (loading || !safePrefs) {
-    return (
-      <LinearGradient colors={[...gradientColors]} style={styles.gradient}>
-        <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color={titleColor} />
-        </View>
-      </LinearGradient>
-    );
-  }
 
   const toggleBorderColor = isDark ? "rgba(255,255,255,0.1)" : "#eee";
   const numberInputBg = isDark ? "rgba(255,255,255,0.12)" : "#fff";

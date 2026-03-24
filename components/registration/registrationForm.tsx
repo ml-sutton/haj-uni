@@ -13,12 +13,9 @@ import {
   primaryTextColor,
   useTheme
 } from "@/contexts/theme";
-import {
-  registerPin,
-  writeEncryptedDBObject,
-  writeSafeDBObject,
-} from "@/database/database";
+import { registerPin, writeEncryptedDBObject, writeSafeDBObject } from "@/database/database";
 import { useDatabaseStore } from "@/stores/databaseStore";
+import { useSafePreferencesStore } from "@/stores/safePreferencesStore";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -117,6 +114,7 @@ export function RegistrationForm({
     async (formData: RegistrationFormData) => {
       const key = await registerPin(formData.pin);
       await writeSafeDBObject(formData.safePreferences);
+      useSafePreferencesStore.getState().setSafePreferences(formData.safePreferences);
       const user = {
         username: formData.username.trim(),
         pronouns: formData.pronouns,

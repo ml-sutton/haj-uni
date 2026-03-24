@@ -99,6 +99,14 @@ export async function hasDatabaseObject(): Promise<boolean> {
   return raw !== null;
 }
 
+/** Export encrypted payload and salt as JSON string for backup. Throws if no data. */
+export async function getEncryptedDataForExport(): Promise<string> {
+  const encrypted = await AsyncStorage.getItem(ENCRYPTED_STORAGE_KEY);
+  const salt = await AsyncStorage.getItem(SALT_STORAGE_KEY);
+  if (!encrypted || !salt) throw new Error("No data to export");
+  return JSON.stringify({ encrypted, salt });
+}
+
 /** Permanently removes all stored app data (encrypted user data, salt, safe prefs). Use for self-destruct only. */
 export async function clearAllData(): Promise<void> {
   await AsyncStorage.multiRemove([
