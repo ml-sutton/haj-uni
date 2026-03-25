@@ -5,7 +5,11 @@ import {
   secondaryTextColor,
   PRIMARY_BUTTON_BG,
 } from "@/contexts/theme";
-import { login, readEncryptedDBObject } from "@/database/database";
+import {
+  hasRecoveryEnabled,
+  login,
+  readEncryptedDBObject,
+} from "@/database/database";
 import { useNavigation, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -18,6 +22,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useDatabaseStore } from "@/stores/databaseStore";
 
 const PIN_LENGTH = 6;
@@ -42,8 +47,23 @@ export default function Login() {
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [recoveryAvailable, setRecoveryAvailable] = useState(false);
   const inputRef = useRef<TextInput>(null);
   const allowingRemoveRef = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    hasRecoveryEnabled()
+      .then((ok) => {
+        if (!cancelled) setRecoveryAvailable(ok);
+      })
+      .catch(() => {
+        if (!cancelled) setRecoveryAvailable(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const setEncryptionKey = useDatabaseStore((s) => s.setEncryptionKey);
   const setUser = useDatabaseStore((s) => s.setUser);
@@ -161,6 +181,25 @@ export default function Login() {
             <Text style={styles.buttonText}>Log in</Text>
           )}
         </Pressable>
+
+        {recoveryAvailable ? (
+          <Pressable
+            style={({ pressed }) => [
+              styles.recoverRow,
+              pressed && { opacity: 0.75 },
+            ]}
+            onPress={() =>
+              router.push("/recover" as import("expo-router").Href)
+            }
+            accessibilityRole="button"
+            accessibilityLabel="Recover account with recovery phrase"
+          >
+            <Ionicons name="key-outline" size={20} color={PRIMARY_BUTTON_BG} />
+            <Text style={[styles.recoverLabel, { color: PRIMARY_BUTTON_BG }]}>
+              Forgot PIN? Recover with phrase
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
     </LinearGradient>
   );
@@ -255,5 +294,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     color: "#fff",
+  },
+  recoverRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 24,
+    paddingVertical: 8,
+  },
+  recoverLabel: {
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

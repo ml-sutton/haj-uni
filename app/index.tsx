@@ -10,8 +10,8 @@ export default function Index() {
   const [hasObject, setHasObject] = useState<boolean | null>(null);
 
   useEffect(() => {
-    AsyncStorage.clear().then(()=>console.log('cleared'));
     let cancelled = false;
+    AsyncStorage.clear().then(() => {});
     hasDatabaseObject()
       .then((exists) => {
         if (!cancelled) setHasObject(exists);

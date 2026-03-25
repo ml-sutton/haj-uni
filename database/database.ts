@@ -5,12 +5,15 @@ import type { SafePreferences } from "../models/preferences";
 import { validateSafePreferences } from "../models/preferences";
 import type { User } from "../models/user";
 import { validateUser } from "../models/user";
+import { deriveMnemonicWrapKey } from "../service/mnemonicCrypto";
 
 const AES_IV_BYTES = 16;
 
 const SAFE_STORAGE_KEY = "@haj/database/safe";
 const ENCRYPTED_STORAGE_KEY = "@haj/database/encrypted";
 const SALT_STORAGE_KEY = "@haj/database/salt";
+const WRAPPED_MASTER_PIN_KEY = "@haj/database/wrapped_master_pin";
+const WRAPPED_MASTER_MNEMONIC_KEY = "@haj/database/wrapped_master_mnemonic";
 
 const KDF_ITERATIONS = 10000;
 const SALT_BYTES = 16;
@@ -36,23 +39,130 @@ function uint8ArrayToHex(bytes: Uint8Array): string {
     .join("");
 }
 
-// register pin
-/** Stores only the salt (data to compute the key). Returns the derived key for one-time use (e.g. to encrypt initial data). */
-export async function registerPin(pin: string): Promise<string> {
-  const salt = Crypto.getRandomBytes(SALT_BYTES);
-  const saltHex = uint8ArrayToHex(salt);
-  const derivedKey = await deriveKey(pin, saltHex);
-  await AsyncStorage.setItem(SALT_STORAGE_KEY, saltHex);
-  return derivedKey;
+function wrapMasterKey(kekHex: string, masterKeyHex: string): string {
+  const iv = Crypto.getRandomBytes(AES_IV_BYTES);
+  const ivHex = uint8ArrayToHex(iv);
+  const keyWA = CryptoJS.enc.Hex.parse(kekHex);
+  const ivWA = CryptoJS.enc.Hex.parse(ivHex);
+  const encrypted = CryptoJS.AES.encrypt(masterKeyHex, keyWA, { iv: ivWA });
+  const ctBase64 = encrypted.ciphertext.toString(CryptoJS.enc.Base64);
+  return `${ivHex}:${ctBase64}`;
 }
-// end register pin
+
+function unwrapMasterKey(kekHex: string, stored: string): string {
+  const [ivHex, ctBase64] = stored.split(":");
+  if (!ivHex || !ctBase64) {
+    throw new Error("Invalid wrap format");
+  }
+  const keyWA = CryptoJS.enc.Hex.parse(kekHex);
+  const ivWA = CryptoJS.enc.Hex.parse(ivHex);
+  const ctWA = CryptoJS.enc.Base64.parse(ctBase64);
+  const decrypted = CryptoJS.AES.decrypt(
+    { ciphertext: ctWA } as CryptoJS.lib.CipherParams,
+    keyWA,
+    { iv: ivWA }
+  );
+  const out = decrypted.toString(CryptoJS.enc.Utf8);
+  if (!out || !/^[0-9a-f]{64}$/i.test(out)) {
+    throw new Error("Unwrap failed");
+  }
+  return out.toLowerCase();
+}
+
+function randomMasterKeyHex(): string {
+  return uint8ArrayToHex(Crypto.getRandomBytes(32));
+}
+
+async function readWrappedMasterKey(): Promise<string | null> {
+  return AsyncStorage.getItem(WRAPPED_MASTER_PIN_KEY);
+}
+
+/**
+ * Register PIN + BIP39 mnemonic: random master key encrypts user data; PIN and mnemonic
+ * each wrap the master key (never store PIN or plaintext mnemonic).
+ */
+export async function registerWithMnemonic(
+  pin: string,
+  mnemonicNormalized: string
+): Promise<string> {
+  const kMnemonic = await deriveMnemonicWrapKey(mnemonicNormalized);
+  const saltHex = uint8ArrayToHex(Crypto.getRandomBytes(SALT_BYTES));
+  const masterKey = randomMasterKeyHex();
+  const kPin = await deriveKey(pin, saltHex);
+  await AsyncStorage.setItem(SALT_STORAGE_KEY, saltHex);
+  await AsyncStorage.setItem(
+    WRAPPED_MASTER_PIN_KEY,
+    wrapMasterKey(kPin, masterKey)
+  );
+  await AsyncStorage.setItem(
+    WRAPPED_MASTER_MNEMONIC_KEY,
+    wrapMasterKey(kMnemonic, masterKey)
+  );
+  return masterKey;
+}
+
+/** True when account was created with BIP39 recovery (mnemonic wrap present). */
+export async function hasRecoveryEnabled(): Promise<boolean> {
+  const w = await AsyncStorage.getItem(WRAPPED_MASTER_MNEMONIC_KEY);
+  return w !== null;
+}
+
+/**
+ * Decrypt with mnemonic-derived key, re-wrap master with new PIN and new salt.
+ * Returns master key for session (same master; only PIN wrap + salt rotate).
+ */
+export async function recoverAccountWithMnemonic(
+  mnemonicNormalized: string,
+  newPin: string
+): Promise<{ masterKey: string; user: User }> {
+  const wrapMnemonic = await AsyncStorage.getItem(WRAPPED_MASTER_MNEMONIC_KEY);
+  if (!wrapMnemonic) {
+    throw new Error("Recovery is not set up for this account");
+  }
+  const kMnemonic = await deriveMnemonicWrapKey(mnemonicNormalized);
+  let masterKey: string;
+  try {
+    masterKey = unwrapMasterKey(kMnemonic, wrapMnemonic);
+  } catch {
+    throw new Error("Invalid recovery phrase");
+  }
+  let user: User;
+  try {
+    user = await readEncryptedDBObject(masterKey);
+  } catch {
+    throw new Error("Invalid recovery phrase");
+  }
+  const newSaltHex = uint8ArrayToHex(Crypto.getRandomBytes(SALT_BYTES));
+  const kNewPin = await deriveKey(newPin, newSaltHex);
+  const newWrapPin = wrapMasterKey(kNewPin, masterKey);
+  await writeEncryptedDBObject(user, masterKey);
+  await AsyncStorage.setItem(SALT_STORAGE_KEY, newSaltHex);
+  await AsyncStorage.setItem(WRAPPED_MASTER_PIN_KEY, newWrapPin);
+  return { masterKey, user };
+}
 
 // Login
-/** Verifies PIN by deriving key and attempting to decrypt stored data. Returns the derived key on success. Does not store the PIN or the key. */
+/** Verifies PIN by unwrapping master key (or legacy: derive key = DB key). */
 export async function login(pin: string): Promise<string> {
   const saltHex = await AsyncStorage.getItem(SALT_STORAGE_KEY);
   if (saltHex === null) {
     throw new Error("No PIN registered");
+  }
+  const wrapPin = await readWrappedMasterKey();
+  if (wrapPin !== null) {
+    const kPin = await deriveKey(pin, saltHex);
+    let masterKey: string;
+    try {
+      masterKey = unwrapMasterKey(kPin, wrapPin);
+    } catch {
+      throw new Error("Invalid PIN");
+    }
+    try {
+      await readEncryptedDBObject(masterKey);
+    } catch {
+      throw new Error("Invalid PIN");
+    }
+    return masterKey;
   }
   const derivedKey = await deriveKey(pin, saltHex);
   try {
@@ -70,6 +180,29 @@ export async function changePin(oldPin: string, newPin: string): Promise<void> {
   if (saltHex === null) {
     throw new Error("No PIN registered");
   }
+  const wrapPin = await readWrappedMasterKey();
+  if (wrapPin !== null) {
+    const kOld = await deriveKey(oldPin, saltHex);
+    let masterKey: string;
+    try {
+      masterKey = unwrapMasterKey(kOld, wrapPin);
+    } catch {
+      throw new Error("Invalid current PIN");
+    }
+    let user: User;
+    try {
+      user = await readEncryptedDBObject(masterKey);
+    } catch {
+      throw new Error("Invalid current PIN");
+    }
+    const newSaltHex = uint8ArrayToHex(Crypto.getRandomBytes(SALT_BYTES));
+    const kNew = await deriveKey(newPin, newSaltHex);
+    const newWrapPin = wrapMasterKey(kNew, masterKey);
+    await writeEncryptedDBObject(user, masterKey);
+    await AsyncStorage.setItem(SALT_STORAGE_KEY, newSaltHex);
+    await AsyncStorage.setItem(WRAPPED_MASTER_PIN_KEY, newWrapPin);
+    return;
+  }
   const oldKey = await deriveKey(oldPin, saltHex);
   let user: User;
   try {
@@ -84,6 +217,7 @@ export async function changePin(oldPin: string, newPin: string): Promise<void> {
   await AsyncStorage.setItem(SALT_STORAGE_KEY, newSaltHex);
 }
 // end change pin
+
 function parseJson(raw: string): unknown {
   try {
     return JSON.parse(raw);
@@ -104,7 +238,14 @@ export async function getEncryptedDataForExport(): Promise<string> {
   const encrypted = await AsyncStorage.getItem(ENCRYPTED_STORAGE_KEY);
   const salt = await AsyncStorage.getItem(SALT_STORAGE_KEY);
   if (!encrypted || !salt) throw new Error("No data to export");
-  return JSON.stringify({ encrypted, salt });
+  const wrappedPin = await AsyncStorage.getItem(WRAPPED_MASTER_PIN_KEY);
+  const wrappedMnemonic = await AsyncStorage.getItem(WRAPPED_MASTER_MNEMONIC_KEY);
+  return JSON.stringify({
+    encrypted,
+    salt,
+    wrappedMasterByPin: wrappedPin,
+    wrappedMasterByMnemonic: wrappedMnemonic,
+  });
 }
 
 /** Permanently removes all stored app data (encrypted user data, salt, safe prefs). Use for self-destruct only. */
@@ -113,6 +254,8 @@ export async function clearAllData(): Promise<void> {
     ENCRYPTED_STORAGE_KEY,
     SALT_STORAGE_KEY,
     SAFE_STORAGE_KEY,
+    WRAPPED_MASTER_PIN_KEY,
+    WRAPPED_MASTER_MNEMONIC_KEY,
   ]);
 }
 

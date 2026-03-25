@@ -23,6 +23,7 @@ function ThemedStack() {
         options={{ headerShown: false, gestureEnabled: false }}
       />
       <Stack.Screen name="register" options={{ headerShown: false }} />
+      <Stack.Screen name="recover" options={{ headerShown: false }} />
       <Stack.Screen
         name="(tabs)"
         options={{ headerShown: false }}
