@@ -5,6 +5,9 @@ export interface RegistrationFormData {
   pronouns: string[];
   safePreferences: SafePreferences;
   securePreferences: SecurePreferences;
+  /** Ephemeral 24-word BIP39 phrase; cleared after account creation. Never persisted. */
+  mnemonic: string;
+  recoveryPhraseAcknowledged: boolean;
   pin: string;
 }
 
@@ -30,6 +33,8 @@ export const DEFAULT_REGISTRATION_FORM_DATA: RegistrationFormData = {
   pronouns: [],
   safePreferences: DEFAULT_SAFE_PREFERENCES,
   securePreferences: DEFAULT_SECURE_PREFERENCES,
+  mnemonic: "",
+  recoveryPhraseAcknowledged: false,
   pin: "",
 };
 

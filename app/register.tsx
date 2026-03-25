@@ -4,7 +4,7 @@ import { View } from "react-native";
 
 export default function Register() {
   const handleSubmit = (_data: RegistrationFormData): void => {
-    // TODO: persist via writeSafeDBObject / writeEncryptedDBObject and navigate
+    // Persistence runs inside RegistrationForm (save step); hook for analytics/tests.
   };
 
   return (

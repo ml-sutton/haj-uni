@@ -2,6 +2,7 @@ import { TitleBar } from "@/components/TitleBar";
 import { PinStep } from "@/components/registration/pinStep";
 import { PreferencesStep } from "@/components/registration/preferencesStep";
 import { PronounsStep } from "@/components/registration/pronounsStep";
+import { RecoveryPhraseStep } from "@/components/registration/recoveryPhraseStep";
 import type { RegistrationFormData } from "@/components/registration/registrationTypes";
 import {
   DEFAULT_REGISTRATION_FORM_DATA,
@@ -13,7 +14,16 @@ import {
   primaryTextColor,
   useTheme
 } from "@/contexts/theme";
-import { registerPin, writeEncryptedDBObject, writeSafeDBObject } from "@/database/database";
+import {
+  registerWithMnemonic,
+  writeEncryptedDBObject,
+  writeSafeDBObject,
+} from "@/database/database";
+import {
+  generate24WordMnemonic,
+  isValidMnemonicPhrase,
+  normalizeMnemonicPhrase,
+} from "@/service/mnemonicCrypto";
 import { useDatabaseStore } from "@/stores/databaseStore";
 import { useSafePreferencesStore } from "@/stores/safePreferencesStore";
 import { LinearGradient } from "expo-linear-gradient";
@@ -39,6 +49,7 @@ const STEPS = [
   "username",
   "pronouns",
   "preferences",
+  "recoveryPhrase",
   "pin",
   "saving",
   "welcome",
@@ -69,6 +80,7 @@ export function RegistrationForm({
   const [data, setData] = useState<RegistrationFormData>(DEFAULT_REGISTRATION_FORM_DATA);
   const [usernameError, setUsernameError] = useState<string | undefined>();
   const [pinError, setPinError] = useState<string | undefined>();
+  const [recoveryError, setRecoveryError] = useState<string | undefined>();
 
   // Sync registration theme choice to app theme so the UI updates immediately
   useEffect(() => {
@@ -83,6 +95,7 @@ export function RegistrationForm({
 
   const stepId = STEP_ORDER[stepIndex];
   const isFirst = stepIndex === 0;
+  const isRecoveryPhraseStep = stepId === "recoveryPhrase";
   const isPinStep = stepId === "pin";
   const isSavingStep = stepId === "saving";
   const isWelcomeStep = stepId === "welcome";
@@ -110,9 +123,33 @@ export function RegistrationForm({
     return true;
   }, [data.pin]);
 
+  const validateRecoveryPhrase = useCallback((): boolean => {
+    const normalized = normalizeMnemonicPhrase(data.mnemonic);
+    if (!isValidMnemonicPhrase(normalized)) {
+      setRecoveryError("Recovery phrase is missing or invalid. Go back and try again.");
+      return false;
+    }
+    if (!data.recoveryPhraseAcknowledged) {
+      setRecoveryError("Confirm that you have saved your recovery phrase.");
+      return false;
+    }
+    setRecoveryError(undefined);
+    return true;
+  }, [data.mnemonic, data.recoveryPhraseAcknowledged]);
+
+  useEffect(() => {
+    if (stepId !== "recoveryPhrase") return;
+    if (data.mnemonic.length > 0) return;
+    updateData({ mnemonic: generate24WordMnemonic() });
+  }, [stepId, data.mnemonic.length, updateData]);
+
   const saveToDatabase = useCallback(
     async (formData: RegistrationFormData) => {
-      const key = await registerPin(formData.pin);
+      const normalized = normalizeMnemonicPhrase(formData.mnemonic);
+      if (!isValidMnemonicPhrase(normalized)) {
+        throw new Error("Invalid recovery phrase");
+      }
+      const masterKey = await registerWithMnemonic(formData.pin, normalized);
       await writeSafeDBObject(formData.safePreferences);
       useSafePreferencesStore.getState().setSafePreferences(formData.safePreferences);
       const user = {
@@ -122,10 +159,16 @@ export function RegistrationForm({
         notes: [],
         preferences: formData.securePreferences,
       };
-      await writeEncryptedDBObject(user, key);
-      setEncryptionKey(key);
+      await writeEncryptedDBObject(user, masterKey);
+      setEncryptionKey(masterKey);
       setUser(user);
       setIsAuthed(true);
+      setData((prev) => ({
+        ...prev,
+        mnemonic: "",
+        recoveryPhraseAcknowledged: false,
+        pin: "",
+      }));
     },
     [setEncryptionKey, setUser, setIsAuthed]
   );
@@ -140,12 +183,13 @@ export function RegistrationForm({
       })
       .catch(() => {
         savingStartedRef.current = false;
-        setStepIndex(STEP_ORDER.indexOf("pin"));
+        setStepIndex(STEP_ORDER.indexOf("recoveryPhrase"));
       });
   }, [stepId, data, saveToDatabase, onSubmit]);
 
   const goNext = useCallback(() => {
     if (stepId === "username" && !validateUsername()) return;
+    if (stepId === "recoveryPhrase" && !validateRecoveryPhrase()) return;
     if (stepId === "pin" && !validatePin()) return;
     if (isPinStep) {
       setStepIndex((i) => Math.min(i + 1, STEP_ORDER.length - 1));
@@ -154,12 +198,21 @@ export function RegistrationForm({
     if (!isWelcomeStep && !isSavingStep) {
       setStepIndex((i) => Math.min(i + 1, STEP_ORDER.length - 1));
     }
-  }, [stepId, isPinStep, isWelcomeStep, isSavingStep, validateUsername, validatePin]);
+  }, [
+    stepId,
+    isPinStep,
+    isWelcomeStep,
+    isSavingStep,
+    validateUsername,
+    validateRecoveryPhrase,
+    validatePin,
+  ]);
 
   const goBack = useCallback(() => {
     setStepIndex((i) => Math.max(i - 1, 0));
     setUsernameError(undefined);
     setPinError(undefined);
+    setRecoveryError(undefined);
   }, []);
 
   return (
@@ -217,6 +270,20 @@ export function RegistrationForm({
               onSafeChange={(safePreferences) => updateData({ safePreferences })}
               onSecureChange={(securePreferences) => updateData({ securePreferences })}
             />
+          )}
+          {stepId === "recoveryPhrase" && (
+            <View>
+              <RecoveryPhraseStep
+                mnemonic={data.mnemonic}
+                acknowledged={data.recoveryPhraseAcknowledged}
+                onAcknowledgedChange={(recoveryPhraseAcknowledged) =>
+                  updateData({ recoveryPhraseAcknowledged })
+                }
+              />
+              {recoveryError ? (
+                <Text style={styles.recoveryError}>{recoveryError}</Text>
+              ) : null}
+            </View>
           )}
           {stepId === "pin" && (
             <PinStep
@@ -283,7 +350,7 @@ export function RegistrationForm({
                 onPress={goNext}
               >
                 <Text style={styles.buttonPrimaryText}>
-                  {isPinStep ? "Create account" : "Next"}
+                  {isPinStep ? "Create account" : isRecoveryPhraseStep ? "Continue" : "Next"}
                 </Text>
               </Pressable>
             </>
@@ -392,5 +459,11 @@ const styles = StyleSheet.create({
   buttonSecondaryText: {
     fontSize: 16,
     fontWeight: "600",
+  },
+  recoveryError: {
+    marginTop: 8,
+    fontSize: 14,
+    color: "#e57373",
+    textAlign: "center",
   },
 });

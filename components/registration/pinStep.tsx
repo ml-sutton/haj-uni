@@ -13,6 +13,8 @@ export interface PinStepProps {
   value: string;
   onChange: (pin: string) => void;
   error?: string;
+  label?: string;
+  hint?: string;
 }
 
 const DIGITS = Array.from({ length: PIN_LENGTH }, (_, i) => i);
@@ -21,6 +23,8 @@ export function PinStep({
   value,
   onChange,
   error,
+  label = "Create a 6-digit PIN",
+  hint = "You will use this to sign in and unlock the app.",
 }: PinStepProps): React.ReactElement {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
@@ -46,8 +50,8 @@ export function PinStep({
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.label, { color: labelColor }]}>Create a 6-digit PIN</Text>
-      <Text style={[styles.hint, { color: hintColor }]}>You will use this to sign in and unlock the app.</Text>
+      <Text style={[styles.label, { color: labelColor }]}>{label}</Text>
+      <Text style={[styles.hint, { color: hintColor }]}>{hint}</Text>
 
       <TextInput
         ref={inputRef}
