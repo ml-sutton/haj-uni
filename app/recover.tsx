@@ -108,7 +108,7 @@ export default function RecoverScreen() {
       setEncryptionKey(masterKey);
       setUser(user);
       setIsAuthed(true);
-      router.replace("/(tabs)");
+      router.replace("/");
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Recovery failed";
       setPhraseError(msg);
