@@ -5,7 +5,7 @@ import {
   secondaryTextColor,
   PRIMARY_BUTTON_BG,
 } from "@/contexts/theme";
-import { login, readEncryptedDBObject, readSafeDBObject } from "@/database/database";
+import { hasRecoveryEnabled, login, readEncryptedDBObject, readSafeDBObject } from "@/database/database";
 import {
   getBiometricUnlockLabel,
   getEncryptionKeyWithBiometrics,
@@ -27,6 +27,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useDatabaseStore } from "@/stores/databaseStore";
 
 const PIN_LENGTH = 6;
@@ -52,6 +53,7 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [bioLoading, setBioLoading] = useState(false);
+  const [recoveryAvailable, setRecoveryAvailable] = useState(false);
   const [showBiometricUnlock, setShowBiometricUnlock] = useState(false);
   const [showWebBiometricHint, setShowWebBiometricHint] = useState(false);
   const [biometricLabel, setBiometricLabel] = useState("Biometrics");
@@ -59,6 +61,20 @@ export default function Login() {
   const allowingRemoveRef = useRef(false);
   const biometricEnabledRef = useRef(false);
   const didAutoBiometricRef = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    hasRecoveryEnabled()
+      .then((ok) => {
+        if (!cancelled) setRecoveryAvailable(ok);
+      })
+      .catch(() => {
+        if (!cancelled) setRecoveryAvailable(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const setEncryptionKey = useDatabaseStore((s) => s.setEncryptionKey);
   const setUser = useDatabaseStore((s) => s.setUser);
@@ -295,6 +311,20 @@ export default function Login() {
             )}
           </Pressable>
         ) : null}
+
+        {recoveryAvailable ? (
+          <Pressable
+            style={({ pressed }) => [styles.recoverRow, pressed && { opacity: 0.75 }]}
+            onPress={() => router.push("/recover" as any)}
+            accessibilityRole="button"
+            accessibilityLabel="Recover account with recovery phrase"
+          >
+            <Ionicons name="key-outline" size={20} color={PRIMARY_BUTTON_BG} />
+            <Text style={[styles.recoverLabel, { color: PRIMARY_BUTTON_BG }]}>
+              Forgot PIN? Recover with phrase
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
     </LinearGradient>
   );
@@ -411,6 +441,18 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   biometricButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  recoverRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 24,
+    paddingVertical: 8,
+  },
+  recoverLabel: {
     fontSize: 16,
     fontWeight: "600",
   },
