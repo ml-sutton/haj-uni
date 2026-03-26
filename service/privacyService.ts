@@ -1,4 +1,5 @@
 import { clearAllData, writeSafeDBObject } from "@/database/database";
+import { clearAuthPolicyState, resetFailedPinAttempts } from "@/service/authPolicyStore";
 import { persistStoreToDatabase } from "@/stores/databaseStore";
 import { useDatabaseStore } from "@/stores/databaseStore";
 import { getSafePreferences } from "@/stores/safePreferencesStore";
@@ -22,6 +23,7 @@ export async function runQuickExit(): Promise<void> {
   const prefs = getSafePreferences();
   await writeSafeDBObject(prefs);
   await persistStoreToDatabase();
+  await resetFailedPinAttempts();
   useDatabaseStore.getState().clearAuth();
   useSafePreferencesStore.getState().resetToDefaults();
 }
@@ -67,5 +69,6 @@ export function isBiometricEnabled(): boolean {
  */
 export async function runSelfDestruct(): Promise<void> {
   await clearAllData();
+  await clearAuthPolicyState();
   useSafePreferencesStore.getState().resetToDefaults();
 }

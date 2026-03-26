@@ -3,6 +3,7 @@ import {
   getNotificationHeader,
 } from "@/const/notificationMessages";
 import type { Dose } from "@/models/dose";
+import { areNotificationsEnabled } from "@/service/privacyService";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
@@ -37,6 +38,8 @@ export interface ScheduleDoseRemindersOptions {
   isDiscrete?: boolean;
   /** When true, deliver reminders silently (no notification sound). */
   isSilent?: boolean;
+  /** Force scheduling even when notificationsEnabled setting is false. */
+  force?: boolean;
 }
 
 /**
@@ -49,6 +52,7 @@ export async function scheduleDoseReminders(
   doses: Dose[],
   options?: ScheduleDoseRemindersOptions
 ): Promise<void> {
+  if (!options?.force && !areNotificationsEnabled()) return;
   const hasPermission = await ensureNotificationSetup();
   if (!hasPermission) return;
 
@@ -101,5 +105,16 @@ export async function scheduleDoseReminders(
         date: scheduledDate,
       },
     });
+  }
+}
+
+/** Cancel all scheduled dose reminders created by this service. */
+export async function cancelDoseReminders(): Promise<void> {
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  const ids = scheduled
+    .map((n) => n.identifier)
+    .filter((id) => id.endsWith("-5min") || id.endsWith("-ontime"));
+  for (const id of ids) {
+    await Notifications.cancelScheduledNotificationAsync(id);
   }
 }
