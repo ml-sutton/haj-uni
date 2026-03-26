@@ -24,6 +24,11 @@ import {
   isValidMnemonicPhrase,
   normalizeMnemonicPhrase,
 } from "@/service/mnemonicCrypto";
+import {
+  isBiometricUnlockAvailable,
+  isNativeBiometricPlatform,
+  saveEncryptionKeyForBiometrics,
+} from "@/service/biometricKeyStore";
 import { useDatabaseStore } from "@/stores/databaseStore";
 import { useSafePreferencesStore } from "@/stores/safePreferencesStore";
 import { LinearGradient } from "expo-linear-gradient";
@@ -150,8 +155,25 @@ export function RegistrationForm({
         throw new Error("Invalid recovery phrase");
       }
       const masterKey = await registerWithMnemonic(formData.pin, normalized);
-      await writeSafeDBObject(formData.safePreferences);
-      useSafePreferencesStore.getState().setSafePreferences(formData.safePreferences);
+      let safePreferences = formData.safePreferences;
+      await writeSafeDBObject(safePreferences);
+
+      if (safePreferences.biometricEnabled && isNativeBiometricPlatform()) {
+        const available = await isBiometricUnlockAvailable();
+        if (available) {
+          try {
+            await saveEncryptionKeyForBiometrics(masterKey);
+          } catch {
+            safePreferences = { ...safePreferences, biometricEnabled: false };
+            await writeSafeDBObject(safePreferences);
+          }
+        } else {
+          safePreferences = { ...safePreferences, biometricEnabled: false };
+          await writeSafeDBObject(safePreferences);
+        }
+      }
+
+      useSafePreferencesStore.getState().setSafePreferences(safePreferences);
       const user = {
         username: formData.username.trim(),
         pronouns: formData.pronouns,

@@ -1,6 +1,5 @@
 import { hasDatabaseObject } from "@/database/database";
 import { useDatabaseStore } from "@/stores/databaseStore";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Redirect } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
@@ -11,7 +10,6 @@ export default function Index() {
 
   useEffect(() => {
     let cancelled = false;
-    AsyncStorage.clear().then(() => {});
     hasDatabaseObject()
       .then((exists) => {
         if (!cancelled) setHasObject(exists);

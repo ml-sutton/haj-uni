@@ -1,3 +1,4 @@
+import { removeStoredEncryptionKey } from "@/service/biometricKeyStore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as CryptoJS from "crypto-js";
 import * as Crypto from "expo-crypto";
@@ -250,6 +251,7 @@ export async function getEncryptedDataForExport(): Promise<string> {
 
 /** Permanently removes all stored app data (encrypted user data, salt, safe prefs). Use for self-destruct only. */
 export async function clearAllData(): Promise<void> {
+  await removeStoredEncryptionKey();
   await AsyncStorage.multiRemove([
     ENCRYPTED_STORAGE_KEY,
     SALT_STORAGE_KEY,

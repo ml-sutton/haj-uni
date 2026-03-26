@@ -1,7 +1,12 @@
 import type { SafePreferences, SecurePreferences } from "@/models/preferences";
 import { useTheme } from "@/contexts/theme";
+import {
+  isBiometricUnlockAvailable,
+  isNativeBiometricPlatform,
+} from "@/service/biometricKeyStore";
 import React from "react";
 import {
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -170,7 +175,26 @@ export function PreferencesStep({
         <Text style={[styles.toggleLabel, { color: labelColor }]}>Biometric login</Text>
         <Switch
           value={safePreferences.biometricEnabled}
-          onValueChange={(biometricEnabled) => setSafe({ biometricEnabled })}
+          onValueChange={async (biometricEnabled) => {
+            if (biometricEnabled) {
+              if (!isNativeBiometricPlatform()) {
+                Alert.alert(
+                  "Not available",
+                  "Biometric unlock is only supported in the iOS and Android app."
+                );
+                return;
+              }
+              const ok = await isBiometricUnlockAvailable();
+              if (!ok) {
+                Alert.alert(
+                  "Biometrics unavailable",
+                  "Set up Face ID, Touch ID, or fingerprint on this device first."
+                );
+                return;
+              }
+            }
+            setSafe({ biometricEnabled });
+          }}
           accessibilityLabel="Biometric enabled"
         />
       </View>
