@@ -28,6 +28,10 @@ function ThemedStack() {
         name="(tabs)"
         options={{ headerShown: false }}
       />
+      <Stack.Screen
+        name="active-dose"
+        options={{ headerShown: false, gestureEnabled: false }}
+      />
     </Stack>
   );
 }

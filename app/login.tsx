@@ -128,7 +128,7 @@ export default function Login() {
         biometricEnabledRef.current
       );
       allowingRemoveRef.current = true;
-      router.replace("/(tabs)");
+      router.replace("/");
     },
     [setEncryptionKey, setUser, setIsAuthed, router]
   );

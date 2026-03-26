@@ -1,12 +1,14 @@
 import { TitleBar } from "@/components/TitleBar";
 import { useTheme } from "@/contexts/theme";
+import { useDatabaseStore } from "@/stores/databaseStore";
 import { useStoreSync } from "@/stores/storeSync";
 import { useSafePreferencesStore } from "@/stores/safePreferencesStore";
+import { findActiveUntakenDose } from "@/utils/doseQueries";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { Tabs } from "expo-router";
+import { Tabs, useRouter, type Href } from "expo-router";
 import { useEffect, useMemo, useRef } from "react";
-import { StyleSheet } from "react-native";
+import { AppState, type AppStateStatus, StyleSheet } from "react-native";
 
 const DARK_GRADIENT = ["#6495ed", "#73c2fb"] as const;
 const LIGHT_GRADIENT = ["#FFA4B6", "#F19CBB"] as const;
@@ -17,10 +19,40 @@ const LIGHT_INACTIVE_TINT = "rgba(26,26,26,0.7)";
 const DARK_BORDER = "#f19cbb";
 const LIGHT_BORDER = "#7fbfe9";
 
+const ACTIVE_DOSE_POLL_MS = 30_000;
+
 export default function TabsLayout() {
   const { resolvedTheme, setTheme, setHighContrast } = useTheme();
+  const router = useRouter();
   useStoreSync();
   const hasHydratedRef = useRef(false);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+
+  useEffect(() => {
+    const checkActiveDose = () => {
+      const { user, isAuthed } = useDatabaseStore.getState();
+      if (!isAuthed || !user) return;
+      const active = findActiveUntakenDose(user.dosages ?? []);
+      if (active) {
+        const href =
+          `/active-dose?doseId=${encodeURIComponent(active.dose.id)}` as Href;
+        router.replace(href);
+      }
+    };
+
+    checkActiveDose();
+    const interval = setInterval(checkActiveDose, ACTIVE_DOSE_POLL_MS);
+    const sub = AppState.addEventListener("change", (next) => {
+      if (appStateRef.current.match(/inactive|background/) && next === "active") {
+        checkActiveDose();
+      }
+      appStateRef.current = next;
+    });
+    return () => {
+      clearInterval(interval);
+      sub.remove();
+    };
+  }, [router]);
 
   useEffect(() => {
     if (hasHydratedRef.current) return;

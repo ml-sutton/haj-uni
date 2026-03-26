@@ -1,11 +1,13 @@
 import { hasDatabaseObject } from "@/database/database";
 import { useDatabaseStore } from "@/stores/databaseStore";
-import { Redirect } from "expo-router";
+import { findActiveUntakenDose } from "@/utils/doseQueries";
+import { Redirect, type Href } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 
 export default function Index() {
   const isAuthed = useDatabaseStore((s) => s.isAuthed);
+  const user = useDatabaseStore((s) => s.user);
   const [hasObject, setHasObject] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -36,6 +38,14 @@ export default function Index() {
 
   if (!isAuthed) {
     return <Redirect href="/login" />;
+  }
+
+  if (user) {
+    const active = findActiveUntakenDose(user.dosages ?? []);
+    if (active) {
+      const href = `/active-dose?doseId=${encodeURIComponent(active.dose.id)}` as Href;
+      return <Redirect href={href} />;
+    }
   }
 
   return <Redirect href="/(tabs)" />;

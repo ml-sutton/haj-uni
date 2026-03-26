@@ -7,9 +7,8 @@ import {
   valueTextColor,
   cardBackgroundColor,
 } from "@/contexts/theme";
-import type { Dose } from "@/models/dose";
-import type { Dosage } from "@/models/dosage";
 import { useDatabaseStore } from "@/stores/databaseStore";
+import { findDoseById } from "@/utils/doseQueries";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
@@ -21,17 +20,6 @@ import {
   Text,
   View,
 } from "react-native";
-
-function findDoseAndDosage(
-  dosages: Dosage[],
-  doseId: string
-): { dosage: Dosage; dose: Dose } | null {
-  for (const dosage of dosages) {
-    const dose = dosage.doses.find((d) => d.id === doseId);
-    if (dose) return { dosage, dose };
-  }
-  return null;
-}
 
 export default function DoseDetailScreen() {
   const params = useLocalSearchParams<{ doseId: string }>();
@@ -49,7 +37,7 @@ export default function DoseDetailScreen() {
 
   const encryptionKey = useDatabaseStore((s) => s.encryptionKey);
   const found = useMemo(
-    () => (user && doseId ? findDoseAndDosage(user.dosages ?? [], doseId) : null),
+    () => (user && doseId ? findDoseById(user.dosages ?? [], doseId) : null),
     [user, doseId]
   );
   const loading = encryptionKey != null && user === null;
