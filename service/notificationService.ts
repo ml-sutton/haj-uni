@@ -7,6 +7,7 @@ import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
 const DOSE_CHANNEL_ID = "dose-reminders";
+const DOSE_SILENT_CHANNEL_ID = "dose-reminders-silent";
 
 /** Ensure notification permissions and Android channel are set up. */
 export async function ensureNotificationSetup(): Promise<boolean> {
@@ -15,6 +16,12 @@ export async function ensureNotificationSetup(): Promise<boolean> {
       name: "Dose reminders",
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
+    });
+    await Notifications.setNotificationChannelAsync(DOSE_SILENT_CHANNEL_ID, {
+      name: "Dose reminders (silent)",
+      importance: Notifications.AndroidImportance.DEFAULT,
+      vibrationPattern: [0],
+      sound: null,
     });
   }
 
@@ -28,6 +35,8 @@ export async function ensureNotificationSetup(): Promise<boolean> {
 export interface ScheduleDoseRemindersOptions {
   /** When true, uses discrete notification copy (e.g. generic "shark fact" style). */
   isDiscrete?: boolean;
+  /** When true, deliver reminders silently (no notification sound). */
+  isSilent?: boolean;
 }
 
 /**
@@ -44,12 +53,19 @@ export async function scheduleDoseReminders(
   if (!hasPermission) return;
 
   const isDiscrete = options?.isDiscrete ?? false;
+  const isSilent = options?.isSilent ?? false;
   const title = getNotificationHeader(isDiscrete);
   const body = GetNotificationMessage(isDiscrete);
+  const channelId = isSilent ? DOSE_SILENT_CHANNEL_ID : DOSE_CHANNEL_ID;
+  const content: Notifications.NotificationContentInput = {
+    title,
+    body,
+    ...(isSilent ? { sound: false } : {}),
+  };
 
   const triggerBase = {
     type: Notifications.SchedulableTriggerInputTypes.DATE as const,
-    ...(Platform.OS === "android" && { channelId: DOSE_CHANNEL_ID }),
+    ...(Platform.OS === "android" && { channelId }),
   };
 
   const now = Date.now();
@@ -69,7 +85,7 @@ export async function scheduleDoseReminders(
     if (reminder5MinBefore.getTime() > now) {
       await Notifications.scheduleNotificationAsync({
         identifier: `${dose.id}-5min`,
-        content: { title, body },
+        content,
         trigger: {
           ...triggerBase,
           date: reminder5MinBefore,
@@ -79,7 +95,7 @@ export async function scheduleDoseReminders(
 
     await Notifications.scheduleNotificationAsync({
       identifier: `${dose.id}-ontime`,
-      content: { title, body },
+      content,
       trigger: {
         ...triggerBase,
         date: scheduledDate,
