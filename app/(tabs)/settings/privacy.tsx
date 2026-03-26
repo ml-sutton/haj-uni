@@ -5,8 +5,13 @@ import {
   secondaryTextColor,
 } from "@/contexts/theme";
 import type { SafePreferences } from "@/models/preferences";
-import { persistStoreToDatabase } from "@/stores/databaseStore";
-import { useDatabaseStore } from "@/stores/databaseStore";
+import {
+  isBiometricUnlockAvailable,
+  isNativeBiometricPlatform,
+  removeStoredEncryptionKey,
+  saveEncryptionKeyForBiometrics,
+} from "@/service/biometricKeyStore";
+import { persistStoreToDatabase, useDatabaseStore } from "@/stores/databaseStore";
 import { useSafePreferencesStore } from "@/stores/safePreferencesStore";
 import { useShallow } from "zustand/react/shallow";
 import { LinearGradient } from "expo-linear-gradient";
@@ -14,6 +19,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback } from "react";
 import {
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -48,6 +54,45 @@ export default function PrivacySettings() {
   const updateSafe = useCallback(
     (patch: Partial<SafePreferences>) => updateSafePreferences(patch),
     [updateSafePreferences]
+  );
+
+  const handleBiometricToggle = useCallback(
+    async (enabled: boolean) => {
+      if (enabled) {
+        if (!isNativeBiometricPlatform()) {
+          Alert.alert(
+            "Not available",
+            "Biometric unlock works only in the iOS and Android app."
+          );
+          return;
+        }
+        if (!(await isBiometricUnlockAvailable())) {
+          Alert.alert(
+            "Biometrics unavailable",
+            "Set up Face ID, Touch ID, or fingerprint on this device first."
+          );
+          return;
+        }
+        const key = useDatabaseStore.getState().encryptionKey;
+        if (!key) {
+          Alert.alert("Unavailable", "Sign in again, then try enabling biometrics.");
+          return;
+        }
+        try {
+          await saveEncryptionKeyForBiometrics(key);
+          updateSafe({ biometricEnabled: true });
+        } catch (e) {
+          Alert.alert(
+            "Could not enable",
+            e instanceof Error ? e.message : "Secure storage failed."
+          );
+        }
+        return;
+      }
+      await removeStoredEncryptionKey();
+      updateSafe({ biometricEnabled: false });
+    },
+    [updateSafe]
   );
 
   const updateSecure = useCallback(
@@ -138,7 +183,7 @@ export default function PrivacySettings() {
           <Text style={[styles.toggleLabel, { color: titleColor }]}>Biometric login</Text>
           <Switch
             value={safePrefs.biometricEnabled}
-            onValueChange={(biometricEnabled) => updateSafe({ biometricEnabled })}
+            onValueChange={handleBiometricToggle}
             accessibilityLabel="Biometric enabled"
           />
         </View>

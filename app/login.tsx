@@ -5,13 +5,22 @@ import {
   secondaryTextColor,
   PRIMARY_BUTTON_BG,
 } from "@/contexts/theme";
-import { login, readEncryptedDBObject } from "@/database/database";
+import { login, readEncryptedDBObject, readSafeDBObject } from "@/database/database";
+import {
+  getBiometricUnlockLabel,
+  getEncryptionKeyWithBiometrics,
+  isBiometricUnlockAvailable,
+  isNativeBiometricPlatform,
+  refreshBiometricEncryptionKeyIfEnabled,
+  removeStoredEncryptionKey,
+} from "@/service/biometricKeyStore";
 import { useNavigation, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -42,8 +51,14 @@ export default function Login() {
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [bioLoading, setBioLoading] = useState(false);
+  const [showBiometricUnlock, setShowBiometricUnlock] = useState(false);
+  const [showWebBiometricHint, setShowWebBiometricHint] = useState(false);
+  const [biometricLabel, setBiometricLabel] = useState("Biometrics");
   const inputRef = useRef<TextInput>(null);
   const allowingRemoveRef = useRef(false);
+  const biometricEnabledRef = useRef(false);
+  const didAutoBiometricRef = useRef(false);
 
   const setEncryptionKey = useDatabaseStore((s) => s.setEncryptionKey);
   const setUser = useDatabaseStore((s) => s.setUser);
@@ -57,11 +72,104 @@ export default function Login() {
   const digits = pin.padEnd(PIN_LENGTH, " ").split("");
   const canSubmit = pin.length === PIN_LENGTH;
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const safe = await readSafeDBObject();
+        if (cancelled) return;
+        biometricEnabledRef.current = safe.biometricEnabled;
+        if (Platform.OS === "web" && safe.biometricEnabled) {
+          setShowWebBiometricHint(true);
+        }
+        if (!safe.biometricEnabled || !isNativeBiometricPlatform()) {
+          setShowBiometricUnlock(false);
+          return;
+        }
+        const available = await isBiometricUnlockAvailable();
+        if (cancelled) return;
+        const label = await getBiometricUnlockLabel();
+        if (cancelled) return;
+        setBiometricLabel(label);
+        setShowBiometricUnlock(available);
+      } catch {
+        if (!cancelled) setShowBiometricUnlock(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const completeUnlock = useCallback(
+    async (key: string) => {
+      const user = await readEncryptedDBObject(key);
+      setEncryptionKey(key);
+      setUser(user);
+      setIsAuthed(true);
+      await refreshBiometricEncryptionKeyIfEnabled(
+        key,
+        biometricEnabledRef.current
+      );
+      allowingRemoveRef.current = true;
+      router.replace("/(tabs)");
+    },
+    [setEncryptionKey, setUser, setIsAuthed, router]
+  );
+
+  useEffect(() => {
+    if (!showBiometricUnlock || loading || didAutoBiometricRef.current) return;
+    didAutoBiometricRef.current = true;
+    let cancelled = false;
+    (async () => {
+      setBioLoading(true);
+      try {
+        const key = await getEncryptionKeyWithBiometrics();
+        if (cancelled || !key) return;
+        await completeUnlock(key);
+      } catch {
+        // User cancelled or key invalid; PIN remains available
+      } finally {
+        if (!cancelled) setBioLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [showBiometricUnlock, loading, completeUnlock]);
+
   const handleChangeText = useCallback((text: string) => {
     const digitsOnly = text.replace(/\D/g, "").slice(0, PIN_LENGTH);
     setPin(digitsOnly);
     setError(null);
   }, []);
+
+  const handleBiometricPress = useCallback(async () => {
+    if (bioLoading || loading) return;
+    setBioLoading(true);
+    setError(null);
+    try {
+      const key = await getEncryptionKeyWithBiometrics();
+      if (!key) {
+        setError(`Could not unlock with ${biometricLabel}. Use your PIN.`);
+        return;
+      }
+      try {
+        await completeUnlock(key);
+      } catch {
+        await removeStoredEncryptionKey();
+        setError(
+          "Stored biometric key no longer matches your data. Use your PIN."
+        );
+      }
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : `${biometricLabel} unlock failed`
+      );
+    } finally {
+      setBioLoading(false);
+    }
+  }, [bioLoading, loading, biometricLabel, completeUnlock]);
 
   const handleSubmit = useCallback(async () => {
     if (!canSubmit || loading) return;
@@ -69,19 +177,16 @@ export default function Login() {
     setError(null);
     try {
       const key = await login(pin);
-      const user = await readEncryptedDBObject(key);
-      setEncryptionKey(key);
-      setUser(user);
-      setIsAuthed(true);
-      allowingRemoveRef.current = true;
-      router.replace("/(tabs)");
+      await completeUnlock(key);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Invalid PIN");
       setPin("");
     } finally {
       setLoading(false);
     }
-  }, [pin, canSubmit, loading, setEncryptionKey, setUser, setIsAuthed, router]);
+  }, [pin, canSubmit, loading, completeUnlock]);
+
+  const busy = loading || bioLoading;
 
   return (
     <LinearGradient
@@ -103,6 +208,12 @@ export default function Login() {
           Enter your PIN to continue
         </Text>
 
+        {showWebBiometricHint ? (
+          <Text style={[styles.webBiometricHint, { color: hintColor }]}>
+            Biometric login is not available on web. Use your PIN.
+          </Text>
+        ) : null}
+
         <View style={styles.pinSection}>
           <TextInput
             ref={inputRef}
@@ -112,13 +223,13 @@ export default function Login() {
             keyboardType="number-pad"
             maxLength={PIN_LENGTH}
             autoComplete="off"
-            editable={!loading}
+            editable={!busy}
             accessibilityLabel="6-digit PIN"
           />
           <Pressable
             style={styles.dotsRow}
             onPress={() => inputRef.current?.focus()}
-            disabled={loading}
+            disabled={busy}
           >
             {DIGITS.map((index) => {
               const filled = digits[index] !== " ";
@@ -129,7 +240,8 @@ export default function Login() {
                   style={[
                     styles.dotWrap,
                     {
-                      borderColor: filled || focused ? "#0066cc" : dotBorderDefault,
+                      borderColor:
+                        filled || focused ? "#0066cc" : dotBorderDefault,
                       backgroundColor: focused ? dotFocusedBg : dotBg,
                     },
                   ]}
@@ -149,11 +261,11 @@ export default function Login() {
         <Pressable
           style={({ pressed }) => [
             styles.button,
-            (!canSubmit || loading) && styles.buttonDisabled,
-            pressed && canSubmit && !loading && styles.buttonPressed,
+            (!canSubmit || busy) && styles.buttonDisabled,
+            pressed && canSubmit && !busy && styles.buttonPressed,
           ]}
           onPress={handleSubmit}
-          disabled={!canSubmit || loading}
+          disabled={!canSubmit || busy}
         >
           {loading ? (
             <ActivityIndicator color="#fff" />
@@ -161,6 +273,28 @@ export default function Login() {
             <Text style={styles.buttonText}>Log in</Text>
           )}
         </Pressable>
+
+        {showBiometricUnlock ? (
+          <Pressable
+            style={({ pressed }) => [
+              styles.biometricButton,
+              { borderColor: isDark ? "rgba(255,255,255,0.4)" : "#0066cc" },
+              busy && styles.buttonDisabled,
+              pressed && !busy && styles.biometricButtonPressed,
+            ]}
+            onPress={handleBiometricPress}
+            disabled={busy}
+            accessibilityLabel={`Unlock with ${biometricLabel}`}
+          >
+            {bioLoading ? (
+              <ActivityIndicator color={labelColor} />
+            ) : (
+              <Text style={[styles.biometricButtonText, { color: labelColor }]}>
+                Use {biometricLabel}
+              </Text>
+            )}
+          </Pressable>
+        ) : null}
       </View>
     </LinearGradient>
   );
@@ -197,6 +331,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
     marginBottom: 32,
+  },
+  webBiometricHint: {
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 16,
+    marginTop: -16,
+    paddingHorizontal: 8,
   },
   pinSection: {
     width: "100%",
@@ -255,5 +396,22 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     color: "#fff",
+  },
+  biometricButton: {
+    marginTop: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    borderWidth: 2,
+    minWidth: 200,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  biometricButtonPressed: {
+    opacity: 0.85,
+  },
+  biometricButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
