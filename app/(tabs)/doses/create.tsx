@@ -179,6 +179,7 @@ export default function CreateDoseScreen() {
       const safePrefs = getSafePreferences();
       scheduleDoseReminders(doses, {
         isDiscrete: safePrefs.discreteMode,
+        isSilent: safePrefs.silentMode,
       }).catch(() => {
         // Non-blocking: reminders are best-effort
       });
