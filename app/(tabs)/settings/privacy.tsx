@@ -11,6 +11,11 @@ import {
   removeStoredEncryptionKey,
   saveEncryptionKeyForBiometrics,
 } from "@/service/biometricKeyStore";
+import { setSelfDestructAfterFailedAttempts } from "@/service/authPolicyStore";
+import {
+  cancelDoseReminders,
+  scheduleDoseReminders,
+} from "@/service/notificationService";
 import { persistStoreToDatabase, useDatabaseStore } from "@/stores/databaseStore";
 import { useSafePreferencesStore } from "@/stores/safePreferencesStore";
 import { useShallow } from "zustand/react/shallow";
@@ -101,8 +106,35 @@ export default function PrivacySettings() {
       const next = { ...user, preferences: { ...user.preferences, ...patch } };
       setUser(next);
       persistStoreToDatabase().catch(() => {});
+      if (patch.selfDestructAfterFailedAttempts != null) {
+        setSelfDestructAfterFailedAttempts(
+          patch.selfDestructAfterFailedAttempts
+        ).catch(() => {});
+      }
     },
     [user, setUser]
+  );
+
+  const handleNotificationsToggle = useCallback(
+    async (notificationsEnabled: boolean) => {
+      updateSafe({ notificationsEnabled });
+      if (!notificationsEnabled) {
+        await cancelDoseReminders().catch(() => {});
+        return;
+      }
+      if (!user) return;
+      const untakenUpcoming = (user.dosages ?? [])
+        .flatMap((d) => d.doses)
+        .filter((dose) => {
+          const when = new Date(dose.scheduledTime).getTime();
+          return dose.takenTime == null && when > Date.now();
+        });
+      await scheduleDoseReminders(untakenUpcoming, {
+        isDiscrete: safePrefs.discreteMode,
+        isSilent: safePrefs.silentMode,
+      }).catch(() => {});
+    },
+    [updateSafe, user, safePrefs.discreteMode, safePrefs.silentMode]
   );
 
   const toggleBorderColor = isDark ? "rgba(255,255,255,0.1)" : "#eee";
@@ -172,7 +204,7 @@ export default function PrivacySettings() {
           <Text style={[styles.toggleLabel, { color: titleColor }]}>Notifications enabled</Text>
           <Switch
             value={safePrefs.notificationsEnabled}
-            onValueChange={(notificationsEnabled) => updateSafe({ notificationsEnabled })}
+            onValueChange={handleNotificationsToggle}
             accessibilityLabel="Notifications enabled"
           />
         </View>
