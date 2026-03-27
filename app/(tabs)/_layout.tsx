@@ -129,9 +129,9 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="insights"
+        name="levels"
         options={{
-          title: "Insights",
+          title: "Levels",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="analytics" size={size} color={color} />
           ),

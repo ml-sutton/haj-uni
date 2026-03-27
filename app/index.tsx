@@ -2,6 +2,7 @@ import { getGradientColors, primaryTextColor, useTheme } from "@/contexts/theme"
 import { hasDatabaseObject } from "@/database/database";
 import { useDatabaseStore } from "@/stores/databaseStore";
 import { findActiveUntakenDose } from "@/utils/doseQueries";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { Redirect, type Href } from "expo-router";
 import { useEffect, useState } from "react";
@@ -17,7 +18,7 @@ export default function Index() {
 
   useEffect(() => {
     let cancelled = false;
-    // AsyncStorage.clear().then(() => {});
+    AsyncStorage.clear().then(() => {});
     hasDatabaseObject()
       .then((exists) => {
         if (!cancelled) setHasObject(exists);

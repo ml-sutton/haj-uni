@@ -100,23 +100,6 @@ export default function PrivacySettings() {
     [updateSafe]
   );
 
-  const handleNotificationsToggle = useCallback(
-    (notificationsEnabled: boolean) => {
-      updateSafe({ notificationsEnabled });
-      const doses = (useDatabaseStore.getState().user?.dosages ?? []).flatMap(
-        (dosage) => dosage.doses ?? []
-      );
-      if (notificationsEnabled) {
-        scheduleDoseReminders(doses, {
-          isDiscrete: useSafePreferencesStore.getState().discreteMode,
-        }).catch(() => {});
-      } else {
-        cancelDoseReminders().catch(() => {});
-      }
-    },
-    [updateSafe]
-  );
-
   const updateSecure = useCallback(
     (patch: Partial<NonNullable<typeof user>["preferences"]>) => {
       if (!user) return;
