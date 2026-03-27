@@ -20,7 +20,7 @@ import {
 } from "react-native";
 
 export default function DosageSettings() {
-  const { resolvedTheme } = useTheme();
+  const { resolvedTheme, highContrast } = useTheme();
   const isDark = resolvedTheme === "dark";
   const titleColor = primaryTextColor(resolvedTheme);
   const secondaryColor = secondaryTextColor(resolvedTheme);
@@ -44,10 +44,10 @@ export default function DosageSettings() {
     [user, setUser]
   );
 
-  const numberInputBg = isDark ? "rgba(255,255,255,0.12)" : "#fff";
-  const numberInputBorder = isDark ? "rgba(255,255,255,0.3)" : "#ccc";
-  const numberInputColor = isDark ? "#fff" : "#1a1a1a";
-  const placeholderColor = isDark ? "rgba(255,255,255,0.5)" : "#888";
+  const numberInputBg = highContrast ? (isDark ? "#000000" : "#ffffff") : isDark ? "rgba(255,255,255,0.12)" : "#fff";
+  const numberInputBorder = highContrast ? (isDark ? "#ffffff" : "#000000") : isDark ? "rgba(255,255,255,0.3)" : "#ccc";
+  const numberInputColor = highContrast ? (isDark ? "#ffffff" : "#000000") : isDark ? "#fff" : "#1a1a1a";
+  const placeholderColor = highContrast ? (isDark ? "#ffffff" : "#000000") : isDark ? "rgba(255,255,255,0.5)" : "#888";
 
   return (
     <LinearGradient colors={[...gradientColors]} style={styles.gradient}>

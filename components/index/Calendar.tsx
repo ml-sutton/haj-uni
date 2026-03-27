@@ -79,6 +79,10 @@ export function Calendar({ user }: CalendarProps) {
   const valueColor = valueTextColor(resolvedTheme);
   const cardBg = cardBackgroundColor(resolvedTheme);
   const todayBg = currentDayHighlight(resolvedTheme);
+  const modalOverlayBg =
+    resolvedTheme === "dark" ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.45)";
+  const modalHeaderBorder =
+    resolvedTheme === "dark" ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.15)";
 
   const days = useMemo(() => getNext7Days(), []);
   const selectedDoses = useMemo(
@@ -120,12 +124,12 @@ export function Calendar({ user }: CalendarProps) {
         animationType="fade"
         onRequestClose={closeModal}
       >
-        <Pressable style={styles.modalOverlay} onPress={closeModal}>
+        <Pressable style={[styles.modalOverlay, { backgroundColor: modalOverlayBg }]} onPress={closeModal}>
           <Pressable
             style={[styles.modalContent, { backgroundColor: cardBg }]}
             onPress={(e) => e.stopPropagation()}
           >
-            <View style={styles.modalHeader}>
+            <View style={[styles.modalHeader, { borderBottomColor: modalHeaderBorder }]}>
               <Text style={[styles.modalTitle, { color: titleColor }]}>
                 Doses for {selectedLabel ?? selectedDateKey}
               </Text>
@@ -175,7 +179,6 @@ const styles = StyleSheet.create({
   dayLabel: { fontSize: 12, fontWeight: "600" },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "#1a1a1a",
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
@@ -194,7 +197,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(128,128,128,0.3)",
   },
   modalTitle: { fontSize: 17, fontWeight: "600" },
   modalClose: { fontSize: 16, fontWeight: "500" },

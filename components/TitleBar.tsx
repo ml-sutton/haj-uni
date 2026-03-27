@@ -1,5 +1,11 @@
 import { triggerQuickExit } from "@/service/privacyService";
-import { useTheme } from "@/contexts/theme";
+import {
+  getGradientColors,
+  primaryTextColor,
+  tabBarBorderColor,
+  titleBarIconBorderColor,
+  useTheme,
+} from "@/contexts/theme";
 import { LinearGradient } from "expo-linear-gradient";
 import { usePathname, useRouter } from "expo-router";
 import { useMemo } from "react";
@@ -22,11 +28,8 @@ const ICON_WIDTH = 72 * ICON_SCALE;
 const ICON_HEIGHT = 76 * ICON_SCALE;
 const ICON_BORDER_RADIUS = 6; // ~2rem
 const ROUTE_TEXT_PADDING_LEFT = 16; // ~2rem
-
-const DARK_GRADIENT = ["#6495ed", "#73c2fb"] as const;
-const LIGHT_GRADIENT = ["#FFA4B6", "#F19CBB"] as const;
-const DARK_ICON_BORDER = "#f19cbb";
-const LIGHT_ICON_BORDER = "#7fbfe9";
+const TITLE_DARK_GRADIENT = ["#6495ed", "#73c2fb"] as const;
+const TITLE_LIGHT_GRADIENT = ["#FFA4B6", "#F19CBB"] as const;
 
 function getTitleFromPathname(pathname: string): string {
   const segments = pathname.split("/").filter(Boolean);
@@ -43,19 +46,33 @@ export interface TitleBarProps {
 }
 
 export function TitleBar({ title: titleOverride }: TitleBarProps = {}) {
-  const { resolvedTheme } = useTheme();
+  const { theme, resolvedTheme, highContrast } = useTheme();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const router = useRouter();
 
   const colors = useMemo(
-    () => (resolvedTheme === "dark" ? DARK_GRADIENT : LIGHT_GRADIENT),
-    [resolvedTheme]
+    () =>
+      highContrast
+        ? resolvedTheme === "dark"
+          ? (["#000000", "#000000"] as const)
+          : (["#ffffff", "#ffffff"] as const)
+        : theme === "colonthree"
+          ? getGradientColors(resolvedTheme, { themeMode: theme, highContrast })
+          : resolvedTheme === "dark"
+            ? TITLE_DARK_GRADIENT
+            : TITLE_LIGHT_GRADIENT,
+    [theme, resolvedTheme, highContrast]
   );
 
   const LineartSvg = useMemo(
-    () => (resolvedTheme === "dark" ? PinkLineart : BlueLineart),
-    [resolvedTheme]
+    () =>
+      theme === "colonthree"
+        ? PinkLineart
+        : resolvedTheme === "dark"
+          ? PinkLineart
+          : BlueLineart,
+    [theme, resolvedTheme]
   );
 
   const title = useMemo(
@@ -63,16 +80,29 @@ export function TitleBar({ title: titleOverride }: TitleBarProps = {}) {
     [pathname, titleOverride]
   );
 
-  const titleColor = resolvedTheme === "dark" ? "#fff" : "#1a1a1a";
-  const iconBorderColor =
-    resolvedTheme === "dark" ? DARK_ICON_BORDER : LIGHT_ICON_BORDER;
+  const titleColor = primaryTextColor(resolvedTheme, { themeMode: theme, highContrast });
+  const iconBorderColor = titleBarIconBorderColor(resolvedTheme, {
+    themeMode: theme,
+    highContrast,
+  });
+  const bottomBorderColor = tabBarBorderColor(resolvedTheme, {
+    themeMode: theme,
+    highContrast,
+  });
 
   return (
     <LinearGradient
       colors={colors}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 0 }}
-      style={[styles.gradient, { height: insets.top + TITLE_BAR_HEIGHT }]}
+      style={[
+        styles.gradient,
+        {
+          height: insets.top + TITLE_BAR_HEIGHT,
+          borderBottomColor: bottomBorderColor,
+          borderBottomWidth: highContrast ? 2 : 0,
+        },
+      ]}
     >
       <View
         style={[

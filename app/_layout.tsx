@@ -1,13 +1,36 @@
-import { ThemeProvider, useTheme } from "@/contexts/theme";
+import {
+  ThemeProvider,
+  cardBackgroundColor,
+  primaryTextColor,
+  useTheme,
+} from "@/contexts/theme";
+import { useSafePreferencesStore } from "@/stores/safePreferencesStore";
 import { Stack } from "expo-router";
+import { useEffect, useRef } from "react";
 
 function ThemedStack() {
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
+  const { theme, resolvedTheme, highContrast, setTheme } = useTheme();
+  const hasHydratedRef = useRef(false);
+
+  useEffect(() => {
+    if (hasHydratedRef.current) return;
+    hasHydratedRef.current = true;
+    useSafePreferencesStore.getState().hydrateFromDb().then(() => {
+      const prefs = useSafePreferencesStore.getState();
+      setTheme(prefs.theme);
+    });
+  }, [setTheme]);
+
   const headerStyle = {
-    backgroundColor: isDark ? "#333333" : "#EBEBEB",
+    backgroundColor: cardBackgroundColor(resolvedTheme, {
+      themeMode: theme,
+      highContrast,
+    }),
   };
-  const headerTintColor = isDark ? "#fff" : "#1a1a1a";
+  const headerTintColor = primaryTextColor(resolvedTheme, {
+    themeMode: theme,
+    highContrast,
+  });
 
   return (
     <Stack

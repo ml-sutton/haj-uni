@@ -11,7 +11,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 export default function CreditsScreen() {
-  const { resolvedTheme } = useTheme();
+  const { resolvedTheme, highContrast } = useTheme();
+  const cardBg = highContrast
+    ? resolvedTheme === "dark"
+      ? "#000000"
+      : "#ffffff"
+    : "rgba(255, 255, 255, 0.08)";
+  const cardBorder = highContrast
+    ? resolvedTheme === "dark"
+      ? "#ffffff"
+      : "#000000"
+    : "transparent";
   const titleColor = primaryTextColor(resolvedTheme);
   const secondaryColor = secondaryTextColor(resolvedTheme);
   const gradientColors = getGradientColors(resolvedTheme);
@@ -39,7 +49,7 @@ export default function CreditsScreen() {
           {Credits.map((credit) => (
             <View
               key={`${credit.alias}-${credit.title}`}
-              style={styles.creditCard}
+              style={[styles.creditCard, { backgroundColor: cardBg, borderColor: cardBorder }]}
             >
               <Text style={[styles.alias, { color: titleColor }]}>
                 {credit.alias}
@@ -78,6 +88,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     backgroundColor: "rgba(255, 255, 255, 0.08)",
+    borderWidth: 1,
+    borderColor: "transparent",
   },
   alias: { fontSize: 18, fontWeight: "700" },
   pronouns: { marginTop: 4, fontSize: 14 },

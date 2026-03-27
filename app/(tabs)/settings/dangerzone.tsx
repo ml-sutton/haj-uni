@@ -23,7 +23,7 @@ import {
 import { Share } from "react-native";
 
 export default function DangerZoneSettings() {
-  const { resolvedTheme } = useTheme();
+  const { resolvedTheme, highContrast } = useTheme();
   const isDark = resolvedTheme === "dark";
   const titleColor = primaryTextColor(resolvedTheme);
   const secondaryColor = secondaryTextColor(resolvedTheme);
@@ -103,7 +103,23 @@ export default function DangerZoneSettings() {
     }
   }, [confirmStep, clearAuth, router]);
 
-  const sectionBorderColor = isDark ? "rgba(255,255,255,0.1)" : "#eee";
+  const sectionBorderColor = highContrast
+    ? isDark
+      ? "#ffffff"
+      : "#000000"
+    : isDark
+      ? "rgba(255,255,255,0.1)"
+      : "#eee";
+  const destructButtonBg = highContrast
+    ? isDark
+      ? "#000000"
+      : "#ffffff"
+    : ERROR_TEXT_COLOR;
+  const destructButtonText = highContrast
+    ? isDark
+      ? "#ffffff"
+      : "#000000"
+    : "#fff";
 
   return (
     <LinearGradient colors={[...gradientColors]} style={styles.gradient}>
@@ -154,12 +170,13 @@ export default function DangerZoneSettings() {
           <Pressable
             style={({ pressed }) => [
               styles.destructButton,
+              { backgroundColor: destructButtonBg, borderColor: sectionBorderColor },
               pressed && styles.destructPressed,
             ]}
             onPress={handleSelfDestruct}
           >
-            <Ionicons name="trash" size={22} color="#fff" />
-            <Text style={styles.destructLabel}>Self-destruct</Text>
+            <Ionicons name="trash" size={22} color={destructButtonText} />
+            <Text style={[styles.destructLabel, { color: destructButtonText }]}>Self-destruct</Text>
           </Pressable>
           <Text style={[styles.destructHint, { color: secondaryColor }]}>
             Permanently delete all data (requires 3 confirmations).
@@ -217,6 +234,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 24,
     backgroundColor: ERROR_TEXT_COLOR,
+    borderWidth: 1,
+    borderColor: "transparent",
     borderRadius: 12,
   },
   destructPressed: { opacity: 0.9 },

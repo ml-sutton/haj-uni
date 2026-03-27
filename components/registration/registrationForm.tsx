@@ -11,6 +11,7 @@ import {
 import { UsernameStep } from "@/components/registration/usernameStep";
 import {
   getGradientColors,
+  inputBorderColor,
   primaryTextColor,
   useTheme
 } from "@/contexts/theme";
@@ -46,9 +47,6 @@ import {
 } from "react-native";
 
 const TOP_BAR_HEIGHT = 72;
-/** Same as (tabs) bottom bar gradient – used for onboarding footer. */
-const TABS_DARK_GRADIENT = ["#6495ed", "#73c2fb"] as const;
-const TABS_LIGHT_GRADIENT = ["#FFA4B6", "#F19CBB"] as const;
 
 const STEPS = [
   "username",
@@ -71,15 +69,15 @@ export interface RegistrationFormProps {
 export function RegistrationForm({
   onSubmit,
 }: RegistrationFormProps): React.ReactElement {
-  const { resolvedTheme, setTheme } = useTheme();
+  const { theme, resolvedTheme, highContrast, setTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
-  const gradientColors = getGradientColors(resolvedTheme);
-  const tabsGradient = isDark ? TABS_DARK_GRADIENT : TABS_LIGHT_GRADIENT;
-  const progressTextColor = primaryTextColor(resolvedTheme);
+  const gradientColors = getGradientColors(resolvedTheme, { themeMode: theme, highContrast });
+  const tabsGradient = gradientColors;
+  const progressTextColor = primaryTextColor(resolvedTheme, { themeMode: theme, highContrast });
   const progressTrackColor = isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.1)";
-  const footerBorderColor = isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.08)";
+  const footerBorderColor = inputBorderColor(resolvedTheme, { themeMode: theme, highContrast });
   const buttonSecondaryBg = isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.06)";
-  const buttonSecondaryTextColor = primaryTextColor(resolvedTheme);
+  const buttonSecondaryTextColor = primaryTextColor(resolvedTheme, { themeMode: theme, highContrast });
 
   const [stepIndex, setStepIndex] = useState(0);
   const [data, setData] = useState<RegistrationFormData>(DEFAULT_REGISTRATION_FORM_DATA);
@@ -87,7 +85,7 @@ export function RegistrationForm({
   const [pinError, setPinError] = useState<string | undefined>();
   const [recoveryError, setRecoveryError] = useState<string | undefined>();
 
-  // Sync registration theme choice to app theme so the UI updates immediately
+  // Sync registration appearance choices so changes apply immediately.
   useEffect(() => {
     setTheme(data.safePreferences.theme);
   }, [data.safePreferences.theme, setTheme]);

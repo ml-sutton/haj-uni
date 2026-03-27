@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import { useColorScheme } from "react-native";
 import type { ThemeContextValue, ThemeMode, ResolvedTheme, HighContrast } from "./types";
+import { setLiveThemeSnapshot } from "./onboardingStyles";
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
@@ -25,48 +26,70 @@ export interface ThemeProviderProps {
   children: ReactNode;
   /** Initial theme mode. */
   initialTheme?: ThemeMode;
-  /** Initial high-contrast value. */
-  initialHighContrast?: HighContrast;
 }
 
 export function ThemeProvider({
   children,
   initialTheme = "system",
-  initialHighContrast = false,
 }: ThemeProviderProps) {
   const [theme, setThemeState] = useState<ThemeMode>(initialTheme);
-  const [highContrast, setHighContrastState] = useState<HighContrast>(
-    initialHighContrast
-  );
   const systemColorScheme = useColorScheme();
+  const highContrast: HighContrast =
+    theme === "darkHighContrast" || theme === "lightHighContrast";
 
   const resolvedTheme: ResolvedTheme = useMemo(() => {
     if (theme === "system") {
       return systemColorScheme === "dark" ? "dark" : "light";
     }
-    return theme;
+    if (theme === "colonthree" || theme === "darkHighContrast") {
+      return "dark";
+    }
+    if (theme === "lightHighContrast") {
+      return "light";
+    }
+    return theme as ResolvedTheme;
   }, [theme, systemColorScheme]);
+
+  // Keep style helpers in sync with live theme state to avoid visual lag.
+  setLiveThemeSnapshot({ themeMode: theme, highContrast });
 
   const setTheme = useCallback((next: ThemeMode) => {
     setThemeState(next);
   }, []);
 
   const setHighContrast = useCallback((next: HighContrast) => {
-    setHighContrastState(next);
-  }, []);
+    setThemeState((prev) => {
+      const baseResolved =
+        prev === "colonthree" || prev === "dark" || prev === "darkHighContrast"
+          ? "dark"
+          : prev === "light" || prev === "lightHighContrast"
+            ? "light"
+            : systemColorScheme === "dark"
+              ? "dark"
+              : "light";
+      if (next) {
+        return baseResolved === "dark" ? "darkHighContrast" : "lightHighContrast";
+      }
+      if (prev === "darkHighContrast") return "dark";
+      if (prev === "lightHighContrast") return "light";
+      return prev;
+    });
+  }, [systemColorScheme]);
 
   const toggleTheme = useCallback(() => {
     setThemeState((prev) => {
       if (prev === "system") {
         return resolvedTheme === "dark" ? "light" : "dark";
       }
+      if (prev === "darkHighContrast") return "lightHighContrast";
+      if (prev === "lightHighContrast") return "darkHighContrast";
       return prev === "dark" ? "light" : "dark";
     });
   }, [resolvedTheme]);
 
   const toggleHighContrast = useCallback(() => {
-    setHighContrastState((prev) => !prev);
-  }, []);
+    setHighContrast(!highContrast);
+  }, [highContrast, setHighContrast]);
 
   const value = useMemo<ThemeContextValue>(
     () => ({

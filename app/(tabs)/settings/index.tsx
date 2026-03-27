@@ -16,17 +16,25 @@ function SettingsLink({
   icon,
   titleColor,
   secondaryColor,
+  backgroundColor,
+  borderColor,
 }: {
   href: string;
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
   titleColor: string;
   secondaryColor: string;
+  backgroundColor: string;
+  borderColor: string;
 }) {
   const router = useRouter();
   return (
     <Pressable
-      style={({ pressed }) => [styles.linkRow, pressed && styles.linkPressed]}
+      style={({ pressed }) => [
+        styles.linkRow,
+        { backgroundColor, borderColor },
+        pressed && styles.linkPressed,
+      ]}
       onPress={() => router.push(href as any)}
     >
       <View style={styles.linkLeft}>
@@ -53,10 +61,20 @@ function SectionHeader({
 }
 
 export default function SettingsIndex() {
-  const { resolvedTheme } = useTheme();
+  const { resolvedTheme, highContrast } = useTheme();
   const titleColor = primaryTextColor(resolvedTheme);
   const secondaryColor = secondaryTextColor(resolvedTheme);
   const gradientColors = getGradientColors(resolvedTheme);
+  const linkBg = highContrast
+    ? resolvedTheme === "dark"
+      ? "#000000"
+      : "#ffffff"
+    : "rgba(255,255,255,0.15)";
+  const linkBorderColor = highContrast
+    ? resolvedTheme === "dark"
+      ? "#ffffff"
+      : "#000000"
+    : "transparent";
   const router = useRouter();
   return (
     <LinearGradient colors={[...gradientColors]} style={styles.gradient}>
@@ -72,6 +90,8 @@ export default function SettingsIndex() {
           icon="color-palette"
           titleColor={titleColor}
           secondaryColor={secondaryColor}
+          backgroundColor={linkBg}
+          borderColor={linkBorderColor}
         />
         <SettingsLink
           href="/settings/privacy"
@@ -79,6 +99,8 @@ export default function SettingsIndex() {
           icon="shield-checkmark"
           titleColor={titleColor}
           secondaryColor={secondaryColor}
+          backgroundColor={linkBg}
+          borderColor={linkBorderColor}
         />
         <SettingsLink
           href="/settings/dosage"
@@ -86,6 +108,8 @@ export default function SettingsIndex() {
           icon="medical"
           titleColor={titleColor}
           secondaryColor={secondaryColor}
+          backgroundColor={linkBg}
+          borderColor={linkBorderColor}
         />
         <SettingsLink
           href="/settings/dangerzone"
@@ -93,6 +117,8 @@ export default function SettingsIndex() {
           icon="warning"
           titleColor={titleColor}
           secondaryColor={secondaryColor}
+          backgroundColor={linkBg}
+          borderColor={linkBorderColor}
         />
 
         <SectionHeader title="About" color={secondaryColor} />
@@ -102,6 +128,8 @@ export default function SettingsIndex() {
           icon="information-circle"
           titleColor={titleColor}
           secondaryColor={secondaryColor}
+          backgroundColor={linkBg}
+          borderColor={linkBorderColor}
         />
         <SettingsLink
           href="/settings/credits"
@@ -109,6 +137,8 @@ export default function SettingsIndex() {
           icon="people"
           titleColor={titleColor}
           secondaryColor={secondaryColor}
+          backgroundColor={linkBg}
+          borderColor={linkBorderColor}
         />
       </ScrollView>
     </LinearGradient>
@@ -140,6 +170,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     backgroundColor: "rgba(255,255,255,0.15)",
+    borderWidth: 1,
+    borderColor: "transparent",
     borderRadius: 12,
     marginBottom: 8,
   },
