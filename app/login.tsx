@@ -14,6 +14,13 @@ import {
   refreshBiometricEncryptionKeyIfEnabled,
   removeStoredEncryptionKey,
 } from "@/service/biometricKeyStore";
+import {
+  getSelfDestructAfterFailedAttempts,
+  recordFailedPinAttempt,
+  resetFailedPinAttempts,
+  setSelfDestructAfterFailedAttempts,
+} from "@/service/authPolicyStore";
+import { runSelfDestruct } from "@/service/privacyService";
 import { useNavigation, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -88,6 +95,9 @@ export default function Login() {
   const setEncryptionKey = useDatabaseStore((s) => s.setEncryptionKey);
   const setUser = useDatabaseStore((s) => s.setUser);
   const setIsAuthed = useDatabaseStore((s) => s.setIsAuthed);
+  const clearAuth = useDatabaseStore((s) => s.clearAuth);
+  const selfDestructEnabledRef = useRef(false);
+  const selfDestructAfterRef = useRef(5);
 
   const dotBorderDefault = isDark ? "rgba(255,255,255,0.35)" : "#ccc";
   const dotBg = isDark ? "rgba(255,255,255,0.1)" : "#fff";
@@ -104,6 +114,8 @@ export default function Login() {
         const safe = await readSafeDBObject();
         if (cancelled) return;
         biometricEnabledRef.current = safe.biometricEnabled;
+        selfDestructEnabledRef.current = safe.selfDestructEnabled;
+        selfDestructAfterRef.current = await getSelfDestructAfterFailedAttempts();
         if (Platform.OS === "web" && safe.biometricEnabled) {
           setShowWebBiometricHint(true);
         }
@@ -132,6 +144,10 @@ export default function Login() {
       setEncryptionKey(key);
       setUser(user);
       setIsAuthed(true);
+      await setSelfDestructAfterFailedAttempts(
+        user.preferences.selfDestructAfterFailedAttempts
+      );
+      await resetFailedPinAttempts();
       await refreshBiometricEncryptionKeyIfEnabled(
         key,
         biometricEnabledRef.current
@@ -204,12 +220,26 @@ export default function Login() {
       const key = await login(pin);
       await completeUnlock(key);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Invalid PIN");
+      const message = e instanceof Error ? e.message : "Invalid PIN";
+      if (message === "Invalid PIN") {
+        const failedAttempts = await recordFailedPinAttempt();
+        const shouldSelfDestruct =
+          selfDestructEnabledRef.current &&
+          failedAttempts >= selfDestructAfterRef.current;
+        if (shouldSelfDestruct) {
+          await runSelfDestruct();
+          clearAuth();
+          allowingRemoveRef.current = true;
+          router.replace("/getStarted");
+          return;
+        }
+      }
+      setError(message);
       setPin("");
     } finally {
       setLoading(false);
     }
-  }, [pin, canSubmit, loading, completeUnlock]);
+  }, [pin, canSubmit, loading, completeUnlock, clearAuth, router]);
 
   const busy = loading || bioLoading;
 

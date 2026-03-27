@@ -30,6 +30,7 @@ import {
   isNativeBiometricPlatform,
   saveEncryptionKeyForBiometrics,
 } from "@/service/biometricKeyStore";
+import { setSelfDestructAfterFailedAttempts } from "@/service/authPolicyStore";
 import { useDatabaseStore } from "@/stores/databaseStore";
 import { useSafePreferencesStore } from "@/stores/safePreferencesStore";
 import { LinearGradient } from "expo-linear-gradient";
@@ -172,6 +173,9 @@ export function RegistrationForm({
       }
 
       useSafePreferencesStore.getState().setSafePreferences(safePreferences);
+      await setSelfDestructAfterFailedAttempts(
+        formData.securePreferences.selfDestructAfterFailedAttempts
+      );
       const user = {
         username: formData.username.trim(),
         pronouns: formData.pronouns,

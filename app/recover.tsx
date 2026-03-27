@@ -15,7 +15,11 @@ import {
   normalizeMnemonicPhrase,
   isValidMnemonicPhrase,
 } from "@/service/mnemonicCrypto";
-import { useDatabaseStore } from "@/stores/databaseStore";
+import {
+  resetFailedPinAttempts,
+  setSelfDestructAfterFailedAttempts,
+} from "@/service/authPolicyStore";
+import { persistStoreToDatabase, useDatabaseStore } from "@/stores/databaseStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -105,9 +109,22 @@ export default function RecoverScreen() {
         normalized,
         pin
       );
+      const recoveredAt = new Date();
+      const recoveredUser = {
+        ...user,
+        preferences: {
+          ...user.preferences,
+          lastRecoveryVerifiedAt: recoveredAt,
+        },
+      };
       setEncryptionKey(masterKey);
-      setUser(user);
+      setUser(recoveredUser);
       setIsAuthed(true);
+      await setSelfDestructAfterFailedAttempts(
+        recoveredUser.preferences.selfDestructAfterFailedAttempts
+      );
+      await resetFailedPinAttempts();
+      await persistStoreToDatabase();
       router.replace("/");
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Recovery failed";

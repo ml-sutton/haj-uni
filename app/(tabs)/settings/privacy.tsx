@@ -11,6 +11,11 @@ import {
   removeStoredEncryptionKey,
   saveEncryptionKeyForBiometrics,
 } from "@/service/biometricKeyStore";
+import { setSelfDestructAfterFailedAttempts } from "@/service/authPolicyStore";
+import {
+  cancelDoseReminders,
+  scheduleDoseReminders,
+} from "@/service/notificationService";
 import { persistStoreToDatabase, useDatabaseStore } from "@/stores/databaseStore";
 import { useSafePreferencesStore } from "@/stores/safePreferencesStore";
 import { useShallow } from "zustand/react/shallow";
@@ -101,6 +106,11 @@ export default function PrivacySettings() {
       const next = { ...user, preferences: { ...user.preferences, ...patch } };
       setUser(next);
       persistStoreToDatabase().catch(() => {});
+      if (patch.selfDestructAfterFailedAttempts != null) {
+        setSelfDestructAfterFailedAttempts(
+          patch.selfDestructAfterFailedAttempts
+        ).catch(() => {});
+      }
     },
     [user, setUser]
   );
@@ -178,7 +188,7 @@ export default function PrivacySettings() {
           <Text style={[styles.toggleLabel, { color: titleColor }]}>Notifications enabled</Text>
           <Switch
             value={safePrefs.notificationsEnabled}
-            onValueChange={(notificationsEnabled) => updateSafe({ notificationsEnabled })}
+            onValueChange={handleNotificationsToggle}
             accessibilityLabel="Notifications enabled"
           />
         </View>
