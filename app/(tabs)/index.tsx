@@ -1,5 +1,6 @@
 import { Calendar } from "@/components/index/Calendar";
 import { NotepadNav } from "@/components/index/NotepadNav";
+import { Resources } from "@/components/index/Resources";
 import { Welcome } from "@/components/index/Welcome";
 import {
   getGradientColors,
@@ -62,6 +63,7 @@ export default function Home() {
         <Welcome user={user} />
         <Calendar user={user} />
         <NotepadNav user={user} />
+        <Resources />
       </ScrollView>
     </LinearGradient>
   );

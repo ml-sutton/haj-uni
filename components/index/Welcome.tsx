@@ -48,16 +48,15 @@ export function Welcome({ user }: WelcomeProps) {
   const greeting = getGreeting();
   const nextMedication = getNextDoseMedicationName(user);
   const adherence = getAdherenceRate(user);
+  const hasAnyDoses = (user.dosages ?? []).some((dosage) => (dosage.doses ?? []).length > 0);
 
-  const medicationText = nextMedication ?? "—";
-  const adherenceText = adherence != null ? `${adherence}%` : "—";
+  const message = hasAnyDoses
+    ? `${greeting}, ${user.username}! Your next dose is of ${nextMedication ?? "an upcoming medication"} and your adherence rate is ${adherence != null ? `${adherence}%` : "still building"}.`
+    : `${greeting}, ${user.username}! You have no doses yet. Create your first dose to start tracking your schedule and unlock adherence insights.`;
 
   return (
     <View style={[styles.card, { backgroundColor: cardBg }]}>
-      <Text style={[styles.message, { color: titleColor }]}>
-        {greeting}, {user.username}! Your next dose is of {medicationText} and your
-        adherence rate is {adherenceText}.
-      </Text>
+      <Text style={[styles.message, { color: titleColor }]}>{message}</Text>
     </View>
   );
 }
