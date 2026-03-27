@@ -6,7 +6,6 @@ import { readSafeDBObject, writeSafeDBObject } from "@/database/database";
 type SafePreferencesStore = {
   /** All safe preference fields; source of truth. */
   theme: SafePreferences["theme"];
-  highContrast: SafePreferences["highContrast"];
   discreteMode: SafePreferences["discreteMode"];
   selfDestructEnabled: SafePreferences["selfDestructEnabled"];
   quickExitEnabled: SafePreferences["quickExitEnabled"];
@@ -36,7 +35,6 @@ export const useSafePreferencesStore = create<SafePreferencesStore>((set, get) =
   updateSafePreferences: (patch) => {
     const next: SafePreferences = {
       theme: get().theme,
-      highContrast: get().highContrast,
       discreteMode: get().discreteMode,
       selfDestructEnabled: get().selfDestructEnabled,
       quickExitEnabled: get().quickExitEnabled,
@@ -68,7 +66,6 @@ export function getSafePreferences(): SafePreferences {
   const s = useSafePreferencesStore.getState();
   return {
     theme: s.theme,
-    highContrast: s.highContrast,
     discreteMode: s.discreteMode,
     selfDestructEnabled: s.selfDestructEnabled,
     quickExitEnabled: s.quickExitEnabled,

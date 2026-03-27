@@ -1,5 +1,11 @@
 import { TitleBar } from "@/components/TitleBar";
-import { useTheme } from "@/contexts/theme";
+import {
+  getGradientColors,
+  tabBarActiveTint,
+  tabBarBorderColor,
+  tabBarInactiveTint,
+  useTheme,
+} from "@/contexts/theme";
 import { useDatabaseStore } from "@/stores/databaseStore";
 import { useStoreSync } from "@/stores/storeSync";
 import { useSafePreferencesStore } from "@/stores/safePreferencesStore";
@@ -10,19 +16,12 @@ import { Tabs, useRouter, type Href } from "expo-router";
 import { useEffect, useMemo, useRef } from "react";
 import { AppState, type AppStateStatus, StyleSheet } from "react-native";
 
-const DARK_GRADIENT = ["#6495ed", "#73c2fb"] as const;
-const LIGHT_GRADIENT = ["#FFA4B6", "#F19CBB"] as const;
-const DARK_ACTIVE_TINT = "#f19cbb";
-const LIGHT_ACTIVE_TINT = "#7fbfe9";
-const DARK_INACTIVE_TINT = "rgba(255,255,255,0.75)";
-const LIGHT_INACTIVE_TINT = "rgba(26,26,26,0.7)";
-const DARK_BORDER = "#f19cbb";
-const LIGHT_BORDER = "#7fbfe9";
-
 const ACTIVE_DOSE_POLL_MS = 30_000;
+const TABS_DARK_GRADIENT = ["#6495ed", "#73c2fb"] as const;
+const TABS_LIGHT_GRADIENT = ["#FFA4B6", "#F19CBB"] as const;
 
 export default function TabsLayout() {
-  const { resolvedTheme, setTheme, setHighContrast } = useTheme();
+  const { theme, resolvedTheme, highContrast, setTheme } = useTheme();
   const router = useRouter();
   useStoreSync();
   const hasHydratedRef = useRef(false);
@@ -60,21 +59,40 @@ export default function TabsLayout() {
     useSafePreferencesStore.getState().hydrateFromDb().then(() => {
       const prefs = useSafePreferencesStore.getState();
       setTheme(prefs.theme);
-      setHighContrast(prefs.highContrast);
     });
-  }, [setTheme, setHighContrast]);
+  }, [setTheme]);
 
   const gradientColors = useMemo(
-    () => (resolvedTheme === "dark" ? DARK_GRADIENT : LIGHT_GRADIENT),
-    [resolvedTheme]
+    () =>
+      highContrast
+        ? resolvedTheme === "dark"
+          ? (["#000000", "#000000"] as const)
+          : (["#ffffff", "#ffffff"] as const)
+        : theme === "colonthree"
+          ? getGradientColors(resolvedTheme, { themeMode: theme, highContrast })
+          : resolvedTheme === "dark"
+            ? TABS_DARK_GRADIENT
+            : TABS_LIGHT_GRADIENT,
+    [theme, resolvedTheme, highContrast]
   );
 
   const tabBarOptions = useMemo(
     () => ({
-      tabBarActiveTintColor: resolvedTheme === "dark" ? DARK_ACTIVE_TINT : LIGHT_ACTIVE_TINT,
-      tabBarInactiveTintColor: resolvedTheme === "dark" ? DARK_INACTIVE_TINT : LIGHT_INACTIVE_TINT,
+      tabBarActiveTintColor: highContrast
+        ? resolvedTheme === "dark"
+          ? "#ffffff"
+          : "#000000"
+        : tabBarActiveTint(resolvedTheme, { themeMode: theme, highContrast }),
+      tabBarInactiveTintColor: highContrast
+        ? resolvedTheme === "dark"
+          ? "#ffffff"
+          : "#000000"
+        : tabBarInactiveTint(resolvedTheme, { themeMode: theme, highContrast }),
       tabBarStyle: {
-        borderTopColor: resolvedTheme === "dark" ? DARK_BORDER : LIGHT_BORDER,
+        borderTopColor: tabBarBorderColor(resolvedTheme, {
+          themeMode: theme,
+          highContrast,
+        }),
         borderTopWidth: 2,
       },
       tabBarBackground: () => (
@@ -87,7 +105,7 @@ export default function TabsLayout() {
       ),
       header: () => <TitleBar />,
     }),
-    [resolvedTheme, gradientColors]
+    [theme, resolvedTheme, highContrast, gradientColors]
   );
 
   return (

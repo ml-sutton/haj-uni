@@ -1,8 +1,14 @@
 import { z } from "zod";
 
 const safePreferencesSchema = z.object({
-  theme: z.enum(["light", "dark", "system"]),
-  highContrast: z.boolean(),
+  theme: z.enum([
+    "light",
+    "dark",
+    "system",
+    "colonthree",
+    "lightHighContrast",
+    "darkHighContrast",
+  ]),
   discreteMode: z.boolean(),
   selfDestructEnabled: z.boolean(),
   quickExitEnabled: z.boolean(),

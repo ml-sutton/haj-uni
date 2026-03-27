@@ -1,7 +1,13 @@
 /**
- * Theme mode: dark, light, or follow system.
+ * Theme mode: dark, light, follow system, or custom variants.
  */
-export type ThemeMode = "dark" | "light" | "system";
+export type ThemeMode =
+  | "dark"
+  | "light"
+  | "system"
+  | "colonthree"
+  | "darkHighContrast"
+  | "lightHighContrast";
 
 /**
  * Resolved theme used for styling (always light or dark).

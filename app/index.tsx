@@ -1,17 +1,24 @@
+import { getGradientColors, primaryTextColor, useTheme } from "@/contexts/theme";
 import { hasDatabaseObject } from "@/database/database";
 import { useDatabaseStore } from "@/stores/databaseStore";
 import { findActiveUntakenDose } from "@/utils/doseQueries";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LinearGradient } from "expo-linear-gradient";
 import { Redirect, type Href } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 
 export default function Index() {
+  const { theme, resolvedTheme, highContrast } = useTheme();
   const isAuthed = useDatabaseStore((s) => s.isAuthed);
   const user = useDatabaseStore((s) => s.user);
   const [hasObject, setHasObject] = useState<boolean | null>(null);
+  const gradientColors = getGradientColors(resolvedTheme, { themeMode: theme, highContrast });
+  const spinnerColor = primaryTextColor(resolvedTheme, { themeMode: theme, highContrast });
 
   useEffect(() => {
     let cancelled = false;
+    AsyncStorage.clear().then(() => {});
     hasDatabaseObject()
       .then((exists) => {
         if (!cancelled) setHasObject(exists);
@@ -26,9 +33,11 @@ export default function Index() {
 
   if (hasObject === null) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
-      </View>
+      <LinearGradient colors={[...gradientColors]} style={{ flex: 1 }}>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <ActivityIndicator size="large" color={spinnerColor} />
+        </View>
+      </LinearGradient>
     );
   }
 

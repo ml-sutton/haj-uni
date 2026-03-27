@@ -13,7 +13,6 @@ export interface RegistrationFormData {
 
 export const DEFAULT_SAFE_PREFERENCES: SafePreferences = {
   theme: "system",
-  highContrast: false,
   discreteMode: false,
   selfDestructEnabled: false,
   quickExitEnabled: false,

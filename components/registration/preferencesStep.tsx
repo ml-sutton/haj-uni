@@ -4,7 +4,7 @@ import {
   isBiometricUnlockAvailable,
   isNativeBiometricPlatform,
 } from "@/service/biometricKeyStore";
-import React from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Alert,
   Pressable,
@@ -15,6 +15,21 @@ import {
   TextInput,
   View,
 } from "react-native";
+
+type ThemePresetKey =
+  | "light"
+  | "dark"
+  | "darkHighContrast"
+  | "lightHighContrast"
+  | "colonthree";
+
+const PRESETS: { key: ThemePresetKey; label: string }[] = [
+  { key: "light", label: "Light" },
+  { key: "dark", label: "Dark" },
+  { key: "darkHighContrast", label: "Dark High contrast" },
+  { key: "lightHighContrast", label: "Light high contrast" },
+  { key: "colonthree", label: "colonthree" },
+];
 
 export interface PreferencesStepProps {
   safePreferences: SafePreferences;
@@ -34,10 +49,6 @@ export function PreferencesStep({
 
   const sectionTitleColor = isDark ? "rgba(255,255,255,0.7)" : "#666";
   const labelColor = isDark ? "#fff" : "#1a1a1a";
-  const themeButtonBg = isDark ? "rgba(255,255,255,0.15)" : "#f0f0f0";
-  const themeButtonActiveBg = isDark ? "rgba(0,102,204,0.4)" : "rgba(0,102,204,0.15)";
-  const themeButtonTextColor = isDark ? "rgba(255,255,255,0.8)" : "#666";
-  const themeButtonActiveTextColor = isDark ? "#7fbfe9" : "#0066cc";
   const toggleBorderColor = isDark ? "rgba(255,255,255,0.1)" : "#eee";
   const numberInputBg = isDark ? "rgba(255,255,255,0.12)" : "#fff";
   const numberInputBorder = isDark ? "rgba(255,255,255,0.3)" : "#ccc";
@@ -52,6 +63,24 @@ export function PreferencesStep({
     onSecureChange({ ...securePreferences, ...patch });
   };
 
+  const [presetOpen, setPresetOpen] = useState(false);
+  const selectedPreset = useMemo<ThemePresetKey>(() => {
+    if (safePreferences.theme === "colonthree") return "colonthree";
+    if (safePreferences.theme === "darkHighContrast") return "darkHighContrast";
+    if (safePreferences.theme === "lightHighContrast") return "lightHighContrast";
+    if (safePreferences.theme === "dark") return "dark";
+    if (safePreferences.theme === "light") return "light";
+    return resolvedTheme === "dark" ? "dark" : "light";
+  }, [safePreferences.theme, resolvedTheme]);
+
+  const applyPreset = useCallback(
+    (preset: ThemePresetKey) => {
+      setSafe({ theme: preset });
+      setPresetOpen(false);
+    },
+    [safePreferences, onSafeChange]
+  );
+
   return (
     <ScrollView
       style={styles.scroll}
@@ -61,69 +90,55 @@ export function PreferencesStep({
     >
       <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>Appearance</Text>
       <View style={styles.row}>
-        <Text style={[styles.label, { color: labelColor }]}>Theme</Text>
-        <View style={styles.themeButtons}>
+        <Text style={[styles.label, { color: labelColor }]}>Theme preset</Text>
+        <View style={styles.dropdownWrap}>
           <Pressable
             style={[
-              styles.themeButtonWrap,
-              { backgroundColor: safePreferences.theme === "system" ? themeButtonActiveBg : themeButtonBg },
+              styles.dropdownTrigger,
+              {
+                borderColor: toggleBorderColor,
+                backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.03)",
+              },
             ]}
-            onPress={() => setSafe({ theme: "system" })}
+            onPress={() => setPresetOpen((v) => !v)}
           >
-            <Text
-              style={[
-                styles.themeButtonText,
-                { color: safePreferences.theme === "system" ? themeButtonActiveTextColor : themeButtonTextColor },
-                safePreferences.theme === "system" && styles.themeButtonTextActive,
-              ]}
-            >
-              System
+            <Text style={[styles.dropdownValue, { color: labelColor }]}>
+              {PRESETS.find((p) => p.key === selectedPreset)?.label ?? "Light"}
+            </Text>
+            <Text style={[styles.dropdownChevron, { color: sectionTitleColor }]}>
+              {presetOpen ? "▲" : "▼"}
             </Text>
           </Pressable>
-          <Pressable
-            style={[
-              styles.themeButtonWrap,
-              { backgroundColor: safePreferences.theme === "light" ? themeButtonActiveBg : themeButtonBg },
-            ]}
-            onPress={() => setSafe({ theme: "light" })}
-          >
-            <Text
+          {presetOpen ? (
+            <View
               style={[
-                styles.themeButtonText,
-                { color: safePreferences.theme === "light" ? themeButtonActiveTextColor : themeButtonTextColor },
-                safePreferences.theme === "light" && styles.themeButtonTextActive,
+                styles.dropdownMenu,
+                {
+                  borderColor: toggleBorderColor,
+                  backgroundColor: isDark ? "#1a1a1a" : "#fff",
+                },
               ]}
             >
-              Light
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[
-              styles.themeButtonWrap,
-              { backgroundColor: safePreferences.theme === "dark" ? themeButtonActiveBg : themeButtonBg },
-            ]}
-            onPress={() => setSafe({ theme: "dark" })}
-          >
-            <Text
-              style={[
-                styles.themeButtonText,
-                { color: safePreferences.theme === "dark" ? themeButtonActiveTextColor : themeButtonTextColor },
-                safePreferences.theme === "dark" && styles.themeButtonTextActive,
-              ]}
-            >
-              Dark
-            </Text>
-          </Pressable>
+              {PRESETS.map((preset) => (
+                <Pressable
+                  key={preset.key}
+                  style={({ pressed }) => [
+                    styles.dropdownItem,
+                    selectedPreset === preset.key && {
+                      backgroundColor: isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.06)",
+                    },
+                    pressed && { opacity: 0.75 },
+                  ]}
+                  onPress={() => applyPreset(preset.key)}
+                >
+                  <Text style={[styles.dropdownItemText, { color: labelColor }]}>
+                    {preset.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
         </View>
-      </View>
-
-      <View style={[styles.toggleRow, { borderBottomColor: toggleBorderColor }]}>
-        <Text style={[styles.toggleLabel, { color: labelColor }]}>High contrast</Text>
-        <Switch
-          value={safePreferences.highContrast}
-          onValueChange={(highContrast) => setSafe({ highContrast })}
-          accessibilityLabel="High contrast mode"
-        />
       </View>
 
       <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>Privacy & safety</Text>
@@ -268,22 +283,26 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     opacity: 0.9,
   },
-  themeButtons: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 4,
-  },
-  themeButtonWrap: {
+  dropdownWrap: { marginTop: 4 },
+  dropdownTrigger: {
+    borderWidth: 1,
+    borderRadius: 10,
     paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
-  themeButtonText: {
-    fontSize: 16,
+  dropdownValue: { fontSize: 15, fontWeight: "500" },
+  dropdownChevron: { fontSize: 12 },
+  dropdownMenu: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderRadius: 10,
+    overflow: "hidden",
   },
-  themeButtonTextActive: {
-    fontWeight: "600",
-  },
+  dropdownItem: { paddingHorizontal: 12, paddingVertical: 10 },
+  dropdownItemText: { fontSize: 15 },
   toggleRow: {
     flexDirection: "row",
     alignItems: "center",

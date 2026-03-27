@@ -43,11 +43,20 @@ const DIGITS = Array.from({ length: PIN_LENGTH }, (_, i) => i);
 export default function Login() {
   const router = useRouter();
   const navigation = useNavigation();
-  const { resolvedTheme } = useTheme();
+  const { theme, resolvedTheme, highContrast } = useTheme();
   const isDark = resolvedTheme === "dark";
-  const gradientColors = getGradientColors(resolvedTheme);
-  const labelColor = primaryTextColor(resolvedTheme);
-  const hintColor = secondaryTextColor(resolvedTheme);
+  const gradientColors = getGradientColors(resolvedTheme, {
+    themeMode: theme,
+    highContrast,
+  });
+  const labelColor = primaryTextColor(resolvedTheme, {
+    themeMode: theme,
+    highContrast,
+  });
+  const hintColor = secondaryTextColor(resolvedTheme, {
+    themeMode: theme,
+    highContrast,
+  });
 
   useEffect(() => {
     const unsubscribe = navigation.addListener("beforeRemove", (e) => {

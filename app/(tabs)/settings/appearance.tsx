@@ -10,36 +10,75 @@ import { useShallow } from "zustand/react/shallow";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useCallback } from "react";
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { useCallback, useMemo } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-const themeButtonBg = (isDark: boolean, active: boolean) =>
-  active ? (isDark ? "rgba(0,102,204,0.4)" : "rgba(0,102,204,0.15)") : isDark ? "rgba(255,255,255,0.15)" : "#f0f0f0";
-const themeButtonTextColor = (isDark: boolean, active: boolean) =>
-  active ? (isDark ? "#7fbfe9" : "#0066cc") : isDark ? "rgba(255,255,255,0.8)" : "#666";
+type ThemePresetKey =
+  | "light"
+  | "dark"
+  | "darkHighContrast"
+  | "lightHighContrast"
+  | "colonthree";
+
+const PRESETS: { key: ThemePresetKey; label: string }[] = [
+  { key: "light", label: "Light" },
+  { key: "dark", label: "Dark" },
+  { key: "darkHighContrast", label: "Dark High contrast" },
+  { key: "lightHighContrast", label: "Light high contrast" },
+  { key: "colonthree", label: "colonthree" },
+];
 
 export default function AppearanceSettings() {
-  const { resolvedTheme, setTheme, setHighContrast } = useTheme();
+  const { resolvedTheme, highContrast, setTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
+  const neutralBorder = highContrast
+    ? isDark
+      ? "#ffffff"
+      : "#000000"
+    : isDark
+      ? "rgba(255,255,255,0.1)"
+      : "#eee";
   const titleColor = primaryTextColor(resolvedTheme);
   const secondaryColor = secondaryTextColor(resolvedTheme);
   const gradientColors = getGradientColors(resolvedTheme);
   const router = useRouter();
 
   const safePrefs = useSafePreferencesStore(
-    useShallow((s) => ({ theme: s.theme, highContrast: s.highContrast }))
+    useShallow((s) => ({ theme: s.theme }))
   );
   const updateSafePreferences = useSafePreferencesStore((s) => s.updateSafePreferences);
-
   const updateSafe = useCallback(
     (patch: Partial<SafePreferences>) => {
       const nextTheme = patch.theme ?? safePrefs.theme;
-      const nextHighContrast = patch.highContrast ?? safePrefs.highContrast;
       setTheme(nextTheme);
-      setHighContrast(nextHighContrast);
       updateSafePreferences(patch);
     },
-    [setTheme, setHighContrast, safePrefs.theme, safePrefs.highContrast, updateSafePreferences]
+    [setTheme, safePrefs.theme, updateSafePreferences]
+  );
+
+  const selectedPreset = useMemo<ThemePresetKey>(() => {
+    if (safePrefs.theme === "colonthree") return "colonthree";
+    if (safePrefs.theme === "darkHighContrast") return "darkHighContrast";
+    if (safePrefs.theme === "lightHighContrast") return "lightHighContrast";
+    if (safePrefs.theme === "dark") return "dark";
+    return "light";
+  }, [safePrefs.theme]);
+
+  const applyPreset = useCallback(
+    (preset: ThemePresetKey) => {
+      if (preset === "darkHighContrast") {
+        updateSafe({ theme: "darkHighContrast" });
+      } else if (preset === "lightHighContrast") {
+        updateSafe({ theme: "lightHighContrast" });
+      } else if (preset === "colonthree") {
+        updateSafe({ theme: "colonthree" });
+      } else if (preset === "dark") {
+        updateSafe({ theme: "dark" });
+      } else {
+        updateSafe({ theme: "light" });
+      }
+    },
+    [updateSafe]
   );
 
   return (
@@ -59,36 +98,38 @@ export default function AppearanceSettings() {
         <Text style={[styles.title, { color: titleColor }]}>
           Appearance and accessibility
         </Text>
-        <Text style={[styles.sectionTitle, { color: secondaryColor }]}>Theme</Text>
+        <Text style={[styles.sectionTitle, { color: secondaryColor }]}>Theme preset</Text>
         <View style={styles.themeButtons}>
-          {(["system", "light", "dark"] as const).map((theme) => (
+          {PRESETS.map((preset) => (
             <Pressable
-              key={theme}
+              key={preset.key}
               style={[
                 styles.themeButtonWrap,
-                { backgroundColor: themeButtonBg(isDark, safePrefs.theme === theme) },
+                {
+                  borderColor: neutralBorder,
+                  backgroundColor:
+                    selectedPreset === preset.key
+                      ? isDark
+                        ? "rgba(255,255,255,0.14)"
+                        : "rgba(0,0,0,0.08)"
+                      : isDark
+                        ? "rgba(255,255,255,0.08)"
+                        : "rgba(0,0,0,0.03)",
+                },
               ]}
-              onPress={() => updateSafe({ theme })}
+              onPress={() => applyPreset(preset.key)}
             >
               <Text
                 style={[
                   styles.themeButtonText,
-                  { color: themeButtonTextColor(isDark, safePrefs.theme === theme) },
-                  safePrefs.theme === theme && styles.themeButtonTextActive,
+                  { color: titleColor },
+                  selectedPreset === preset.key && styles.themeButtonTextActive,
                 ]}
               >
-                {theme.charAt(0).toUpperCase() + theme.slice(1)}
+                {preset.label}
               </Text>
             </Pressable>
           ))}
-        </View>
-        <View style={[styles.toggleRow, { borderBottomColor: isDark ? "rgba(255,255,255,0.1)" : "#eee" }]}>
-          <Text style={[styles.toggleLabel, { color: titleColor }]}>High contrast</Text>
-          <Switch
-            value={safePrefs.highContrast}
-            onValueChange={(highContrast) => updateSafe({ highContrast })}
-            accessibilityLabel="High contrast mode"
-          />
         </View>
       </ScrollView>
     </LinearGradient>
@@ -116,20 +157,18 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textTransform: "uppercase",
   },
-  themeButtons: { flexDirection: "row", gap: 12, marginBottom: 16 },
-  themeButtonWrap: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  themeButtonText: { fontSize: 16 },
-  themeButtonTextActive: { fontWeight: "600" },
-  toggleRow: {
+  themeButtons: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 6,
   },
-  toggleLabel: { fontSize: 16, flex: 1 },
+  themeButtonWrap: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  themeButtonText: { fontSize: 15, fontWeight: "500" },
+  themeButtonTextActive: { fontWeight: "700" },
 });

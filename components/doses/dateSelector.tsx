@@ -61,6 +61,8 @@ export function TimeSelector({ visible, onClose, value, onSelect }: TimeSelector
   const secondaryColor = secondaryTextColor(resolvedTheme);
   const cardBg = cardBackgroundColor(resolvedTheme);
   const inputBorder = inputBorderColor(resolvedTheme);
+  const overlayBg =
+    resolvedTheme === "dark" ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.45)";
 
   const parsed = useMemo(() => parse24h(value), [value]);
   const [hour12, setHour12] = useState(parsed.hour12);
@@ -98,7 +100,7 @@ export function TimeSelector({ visible, onClose, value, onSelect }: TimeSelector
       animationType="fade"
       onRequestClose={onClose}
     >
-      <Pressable style={styles.overlay} onPress={onClose}>
+      <Pressable style={[styles.overlay, { backgroundColor: overlayBg }]} onPress={onClose}>
         <Pressable
           style={[styles.card, { backgroundColor: cardBg, borderColor: inputBorder }]}
           onPress={(e) => e.stopPropagation()}
@@ -182,7 +184,6 @@ export function TimeSelector({ visible, onClose, value, onSelect }: TimeSelector
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "#1a1a1a",
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
