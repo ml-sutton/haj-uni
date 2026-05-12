@@ -8,6 +8,7 @@ import {
 } from "@/contexts/theme";
 import type { Dosage } from "@/models/dosage";
 import type { Dose } from "@/models/dose";
+import type { Medication } from "@/models/medication";
 import type { User } from "@/models/user";
 import { useCallback, useMemo, useState } from "react";
 import {
@@ -26,13 +27,18 @@ function toDateKey(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-function getDosesForDay(user: User, dateKey: string): { dosage: Dosage; dose: Dose }[] {
-  const out: { dosage: Dosage; dose: Dose }[] = [];
-  for (const dosage of user.dosages ?? []) {
-    for (const dose of dosage.doses) {
-      const scheduled = new Date(dose.scheduledTime);
-      if (toDateKey(scheduled) === dateKey) {
-        out.push({ dosage, dose });
+function getDosesForDay(
+  user: User,
+  dateKey: string
+): { medication: Medication; dosage: Dosage; dose: Dose }[] {
+  const out: { medication: Medication; dosage: Dosage; dose: Dose }[] = [];
+  for (const medication of user.medications ?? []) {
+    for (const dosage of medication.dosages) {
+      for (const dose of dosage.doses) {
+        const scheduled = new Date(dose.scheduledTime);
+        if (toDateKey(scheduled) === dateKey) {
+          out.push({ medication, dosage, dose });
+        }
       }
     }
   }
@@ -141,9 +147,9 @@ export function Calendar({ user }: CalendarProps) {
               {selectedDoses.length === 0 ? (
                 <Text style={[styles.empty, { color: secondaryColor }]}>No doses scheduled.</Text>
               ) : (
-                selectedDoses.map(({ dosage, dose }) => (
+                selectedDoses.map(({ medication, dose }) => (
                   <View key={dose.id} style={[styles.doseRow, { borderBottomColor: secondaryColor }]}>
-                    <Text style={[styles.doseMedication, { color: valueColor }]}>{dosage.name}</Text>
+                    <Text style={[styles.doseMedication, { color: valueColor }]}>{medication.name}</Text>
                     <Text style={[styles.doseTime, { color: labelColor }]}>
                       {new Date(dose.scheduledTime).toLocaleTimeString(undefined, {
                         hour: "numeric",

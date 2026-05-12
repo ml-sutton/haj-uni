@@ -31,7 +31,8 @@ export default function TabsLayout() {
     const checkActiveDose = () => {
       const { user, isAuthed } = useDatabaseStore.getState();
       if (!isAuthed || !user) return;
-      const active = findActiveUntakenDose(user.dosages ?? []);
+      const allDosages = (user.medications ?? []).flatMap((m) => m.dosages);
+      const active = findActiveUntakenDose(allDosages);
       if (active) {
         const href =
           `/active-dose?doseId=${encodeURIComponent(active.dose.id)}` as Href;

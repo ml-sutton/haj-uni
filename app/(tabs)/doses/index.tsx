@@ -8,6 +8,7 @@ import {
 } from "@/contexts/theme";
 import type { Dose } from "@/models/dose";
 import type { Dosage } from "@/models/dosage";
+import type { Medication } from "@/models/medication";
 import { useDatabaseStore } from "@/stores/databaseStore";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -56,8 +57,12 @@ export default function DosesScreen() {
     );
   }
 
-  const allDoses: { dosage: Dosage; dose: Dose }[] = (user.dosages ?? []).flatMap(
-    (d) => d.doses.map((dose) => ({ dosage: d, dose }))
+  const allDoses: { medication: Medication; dosage: Dosage; dose: Dose }[] = (
+    user.medications ?? []
+  ).flatMap((medication) =>
+    medication.dosages.flatMap((dosage) =>
+      dosage.doses.map((dose) => ({ medication, dosage, dose }))
+    )
   );
 
   return (
@@ -94,17 +99,17 @@ export default function DosesScreen() {
           </View>
         ) : (
           <View style={styles.list}>
-            {allDoses.map(({ dosage, dose }) => (
+            {allDoses.map(({ medication, dosage, dose }) => (
               <Pressable
                 key={dose.id}
                 style={[styles.card, { backgroundColor: cardBg }]}
                 onPress={() => router.push(`/(tabs)/doses/${dose.id}`)}
-                accessibilityLabel={`View details for ${dosage.name} dose`}
+                accessibilityLabel={`View details for ${medication.name} dose`}
               >
-                <Text style={[styles.cardMedication, { color: titleColor }]}>{dosage.name}</Text>
+                <Text style={[styles.cardMedication, { color: titleColor }]}>{medication.name}</Text>
                 <Text style={[styles.cardDetail, { color: secondaryColor }]}>
-                  {dosage.dosage} {dosage.unit} · {dosage.medicationType} ·{" "}
-                  {dosage.ingestionMethod}
+                  {dosage.amount} {dosage.unit} · {medication.medicationType} ·{" "}
+                  {medication.ingestionMethod}
                 </Text>
                 <Text style={[styles.cardDetail, { color: secondaryColor }]}>
                   Every {dosage.frequencyDays} day(s) · Scheduled{" "}

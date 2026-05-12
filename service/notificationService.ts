@@ -118,3 +118,11 @@ export async function cancelDoseReminders(): Promise<void> {
     await Notifications.cancelScheduledNotificationAsync(id);
   }
 }
+
+/** Cancel reminders for specific dose instance ids (e.g. after deleting or replacing a schedule). */
+export async function cancelDoseRemindersForDoseIds(doseIds: string[]): Promise<void> {
+  for (const id of doseIds) {
+    await Notifications.cancelScheduledNotificationAsync(`${id}-5min`);
+    await Notifications.cancelScheduledNotificationAsync(`${id}-ontime`);
+  }
+}

@@ -22,15 +22,21 @@ const ingestionMethodSchema = z.enum([
   "Other",
 ]);
 
+/** Local clock time (hour + minute) for when a dose should recur. */
+export const timeOfDaySchema = z.object({
+  hour: z.number().int().min(0).max(23),
+  minute: z.number().int().min(0).max(59),
+});
+export type TimeOfDay = z.infer<typeof timeOfDaySchema>;
+
 export const dosageSchema = z.object({
   id: z.string(),
-  name: z.string(),
-  frequencyDays: z.number(),
-  dosage: z.number(),
+  /** All clock times each period when this amount applies (e.g. morning + evening). */
+  timesOfDay: z.array(timeOfDaySchema).min(1),
+  amount: z.number(),
   unit: unitSchema,
+  frequencyDays: z.number().int().min(1),
   notes: z.string().nullable(),
-  ingestionMethod: ingestionMethodSchema,
-  medicationType: medicationTypeSchema,
   doses: z.array(doseSchema),
 });
 
@@ -42,7 +48,4 @@ export function validateDosage(data: unknown): Dosage {
   return dosageSchema.parse(data);
 }
 
-export {
-  medicationTypeSchema,
-  ingestionMethodSchema,
-};
+export { medicationTypeSchema, ingestionMethodSchema };

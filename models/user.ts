@@ -1,12 +1,12 @@
 import { z } from "zod";
-import { dosageSchema } from "./dosage";
+import { medicationSchema } from "./medication";
 import { noteSchema } from "./note";
 import { securePreferencesSchema } from "./preferences";
 
 const userSchema = z.object({
   username: z.string(),
   pronouns: z.array(z.string()),
-  dosages: z.array(dosageSchema),
+  medications: z.array(medicationSchema),
   preferences: securePreferencesSchema,
   notes: z.array(noteSchema).default([]),
 });

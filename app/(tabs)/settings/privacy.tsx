@@ -14,6 +14,7 @@ import {
 import { setSelfDestructAfterFailedAttempts } from "@/service/authPolicyStore";
 import {
   cancelDoseReminders,
+  ensureNotificationSetup,
   scheduleDoseReminders,
 } from "@/service/notificationService";
 import { persistStoreToDatabase, useDatabaseStore } from "@/stores/databaseStore";
@@ -64,7 +65,7 @@ export default function PrivacySettings() {
   const handleBiometricToggle = useCallback(
     async (enabled: boolean) => {
       if (enabled) {
-        if (!isNativeBiometricPlatform()) {
+        if (!isNativeBiometricPlatform()) { 
           Alert.alert(
             "Not available",
             "Biometric unlock works only in the iOS and Android app."
@@ -96,6 +97,34 @@ export default function PrivacySettings() {
       }
       await removeStoredEncryptionKey();
       updateSafe({ biometricEnabled: false });
+    },
+    [updateSafe]
+  );
+
+  const handleNotificationsToggle = useCallback(
+    async (notificationsEnabled: boolean) => {
+      if (!notificationsEnabled) {
+        await cancelDoseReminders().catch(() => {});
+        updateSafe({ notificationsEnabled: false });
+        return;
+      }
+      const granted = await ensureNotificationSetup();
+      if (!granted) {
+        Alert.alert(
+          "Notifications not allowed",
+          "Enable notifications for this app in system settings to receive dose reminders."
+        );
+        return;
+      }
+      updateSafe({ notificationsEnabled: true });
+      const doses = (useDatabaseStore.getState().user?.medications ?? []).flatMap(
+        (m) => m.dosages.flatMap((d) => d.doses)
+      );
+      const prefs = useSafePreferencesStore.getState();
+      await scheduleDoseReminders(doses, {
+        isDiscrete: prefs.discreteMode,
+        isSilent: prefs.silentMode,
+      }).catch(() => {});
     },
     [updateSafe]
   );

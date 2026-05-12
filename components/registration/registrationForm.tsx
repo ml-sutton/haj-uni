@@ -179,7 +179,7 @@ export function RegistrationForm({
       const user = {
         username: formData.username.trim(),
         pronouns: formData.pronouns,
-        dosages: [],
+        medications: [],
         notes: [],
         preferences: formData.securePreferences,
       };

@@ -1,5 +1,6 @@
 import type { Dose } from "@/models/dose";
 import type { Dosage } from "@/models/dosage";
+import type { Medication } from "@/models/medication";
 
 const ACTIVE_BEFORE_MS = 5 * 60 * 1000;
 const ACTIVE_AFTER_MS = 10 * 60 * 1000;
@@ -17,13 +18,19 @@ export function isUntakenDoseInActiveWindow(dose: Dose, now: Date = new Date()):
   return n >= startMs && n <= endMs;
 }
 
+export function flattenDosagesFromMedications(medications: Medication[]): Dosage[] {
+  return medications.flatMap((m) => m.dosages);
+}
+
 export function findDoseById(
-  dosages: Dosage[],
+  medications: Medication[],
   doseId: string
-): { dosage: Dosage; dose: Dose } | null {
-  for (const dosage of dosages) {
-    const dose = dosage.doses.find((d) => d.id === doseId);
-    if (dose) return { dosage, dose };
+): { medication: Medication; dosage: Dosage; dose: Dose } | null {
+  for (const medication of medications) {
+    for (const dosage of medication.dosages) {
+      const dose = dosage.doses.find((d) => d.id === doseId);
+      if (dose) return { medication, dosage, dose };
+    }
   }
   return null;
 }

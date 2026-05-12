@@ -71,7 +71,7 @@ export default function ActiveDoseScreen() {
   }, [encryptionKey, user, setUser, goToTabs]);
 
   const found = useMemo(
-    () => (user && doseId ? findDoseById(user.dosages ?? [], doseId) : null),
+    () => (user && doseId ? findDoseById(user.medications ?? [], doseId) : null),
     [user, doseId]
   );
 
@@ -88,7 +88,7 @@ export default function ActiveDoseScreen() {
         goToTabs();
         return;
       }
-      const f = findDoseById(u.dosages ?? [], doseId);
+      const f = findDoseById(u.medications ?? [], doseId);
       if (!f || f.dose.takenTime != null || !isUntakenDoseInActiveWindow(f.dose)) {
         goToTabs();
       }
@@ -107,7 +107,7 @@ export default function ActiveDoseScreen() {
       goToTabs();
       return;
     }
-    const f = findDoseById(user.dosages ?? [], doseId);
+    const f = findDoseById(user.medications ?? [], doseId);
     if (!f || f.dose.takenTime != null || !isUntakenDoseInActiveWindow(f.dose)) {
       goToTabs();
     }
@@ -116,16 +116,19 @@ export default function ActiveDoseScreen() {
   const markAsTaken = useCallback(() => {
     if (!user || !doseId || !found) return;
     setMarkingTaken(true);
-    const updatedDosages = (user.dosages ?? []).map((d) => {
-      if (d.id !== found.dosage.id) return d;
-      return {
-        ...d,
-        doses: d.doses.map((dose) =>
-          dose.id === doseId ? { ...dose, takenTime: new Date() } : dose
-        ),
-      };
-    });
-    setUser({ ...user, dosages: updatedDosages });
+    const updatedMedications = user.medications.map((m) => ({
+      ...m,
+      dosages: m.dosages.map((d) => {
+        if (d.id !== found.dosage.id) return d;
+        return {
+          ...d,
+          doses: d.doses.map((dose) =>
+            dose.id === doseId ? { ...dose, takenTime: new Date() } : dose
+          ),
+        };
+      }),
+    }));
+    setUser({ ...user, medications: updatedMedications });
     persistStoreToDatabase().finally(() => {
       setMarkingTaken(false);
       goToTabs();
@@ -133,7 +136,7 @@ export default function ActiveDoseScreen() {
   }, [user, setUser, doseId, found, goToTabs]);
 
   const guidance = useMemo(
-    () => (found ? getIngestionGuidance(found.dosage.ingestionMethod) : null),
+    () => (found ? getIngestionGuidance(found.medication.ingestionMethod) : null),
     [found]
   );
 
@@ -150,7 +153,7 @@ export default function ActiveDoseScreen() {
     );
   }
 
-  const { dosage, dose } = found;
+  const { medication, dosage, dose } = found;
 
   return (
     <LinearGradient colors={[...gradientColors]} style={styles.gradient}>
@@ -165,16 +168,16 @@ export default function ActiveDoseScreen() {
         </Text>
 
         <View style={[styles.section, { backgroundColor: cardBg }]}>
-          <Text style={[styles.sectionTitle, { color: titleColor }]}>{dosage.name}</Text>
+          <Text style={[styles.sectionTitle, { color: titleColor }]}>{medication.name}</Text>
           <View style={styles.row}>
             <Text style={[styles.label, { color: labelColor }]}>Amount</Text>
             <Text style={[styles.value, { color: valueColor }]}>
-              {dosage.dosage} {dosage.unit}
+              {dosage.amount} {dosage.unit}
             </Text>
           </View>
           <View style={styles.row}>
             <Text style={[styles.label, { color: labelColor }]}>How you take it</Text>
-            <Text style={[styles.value, { color: valueColor }]}>{dosage.ingestionMethod}</Text>
+            <Text style={[styles.value, { color: valueColor }]}>{medication.ingestionMethod}</Text>
           </View>
         </View>
 

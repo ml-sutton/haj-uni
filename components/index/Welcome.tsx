@@ -10,11 +10,13 @@ import { StyleSheet, Text, View } from "react-native";
 function getNextDoseMedicationName(user: User): string | null {
   const now = new Date();
   const candidates: { name: string; scheduledTime: Date }[] = [];
-  for (const dosage of user.dosages ?? []) {
-    for (const dose of dosage.doses) {
-      const scheduled = new Date(dose.scheduledTime);
-      if (scheduled > now && dose.takenTime == null) {
-        candidates.push({ name: dosage.name, scheduledTime: scheduled });
+  for (const medication of user.medications ?? []) {
+    for (const dosage of medication.dosages) {
+      for (const dose of dosage.doses) {
+        const scheduled = new Date(dose.scheduledTime);
+        if (scheduled > now && dose.takenTime == null) {
+          candidates.push({ name: medication.name, scheduledTime: scheduled });
+        }
       }
     }
   }
@@ -26,10 +28,12 @@ function getNextDoseMedicationName(user: User): string | null {
 function getAdherenceRate(user: User): number | null {
   let total = 0;
   let taken = 0;
-  for (const dosage of user.dosages ?? []) {
-    for (const dose of dosage.doses) {
-      total += 1;
-      if (dose.takenTime != null) taken += 1;
+  for (const medication of user.medications ?? []) {
+    for (const dosage of medication.dosages) {
+      for (const dose of dosage.doses) {
+        total += 1;
+        if (dose.takenTime != null) taken += 1;
+      }
     }
   }
   if (total === 0) return null;

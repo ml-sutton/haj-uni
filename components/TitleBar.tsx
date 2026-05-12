@@ -7,7 +7,7 @@ import {
   useTheme,
 } from "@/contexts/theme";
 import { LinearGradient } from "expo-linear-gradient";
-import { usePathname, useRouter } from "expo-router";
+import { usePathname, useRouter, useSegments } from "expo-router";
 import { useMemo } from "react";
 import {
   BackHandler,
@@ -49,7 +49,9 @@ export function TitleBar({ title: titleOverride }: TitleBarProps = {}) {
   const { theme, resolvedTheme, highContrast } = useTheme();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
+  const segments = useSegments();
   const router = useRouter();
+  const isInsideTabs = (segments as string[]).includes("(tabs)");
 
   const colors = useMemo(
     () =>
@@ -121,7 +123,10 @@ export function TitleBar({ title: titleOverride }: TitleBarProps = {}) {
               backgroundColor: pressed ? "rgba(0,0,0,0.1)" : "transparent",
             },
           ]}
-          onPress={() => router.replace("/(tabs)")}
+          onPress={() => {
+            if (!isInsideTabs) return;
+            router.replace("/(tabs)");
+          }}
           onLongPress={() => {
             triggerQuickExit(() => router.replace("/login")).then((didQuickExit) => {
               if (didQuickExit) return;
