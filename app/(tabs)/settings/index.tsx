@@ -4,7 +4,6 @@ import {
   primaryTextColor,
   secondaryTextColor,
 } from "@/contexts/theme";
-import { useDatabaseStore } from "@/stores/databaseStore";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -75,7 +74,6 @@ export default function SettingsIndex() {
       ? "#ffffff"
       : "#000000"
     : "transparent";
-  const router = useRouter();
   return (
     <LinearGradient colors={[...gradientColors]} style={styles.gradient}>
       <ScrollView
@@ -84,6 +82,15 @@ export default function SettingsIndex() {
         showsVerticalScrollIndicator={false}
       >
         <SectionHeader title="Settings" color={secondaryColor} />
+        <SettingsLink
+          href="/firebase-sign-in"
+          label="Sync to firebase"
+          icon="cloud-upload-outline"
+          titleColor={titleColor}
+          secondaryColor={secondaryColor}
+          backgroundColor={linkBg}
+          borderColor={linkBorderColor}
+        />
         <SettingsLink
           href="/settings/appearance"
           label="Appearance and accessibility"
