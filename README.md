@@ -9,15 +9,16 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 3. In Firebase Console → **Firestore** → **Rules**, replace all rules with the contents of [`firestore.rules`](firestore.rules) (remove any `match /{document=**}` test rule), then **Publish**. Or run `firebase deploy --only firestore:rules` if you use the Firebase CLI.
 4. Restart Expo after changing `.env`. Use **Sync to firebase** in Settings to sign in, then upload or download encrypted backups.
 
+## CI
 
-test 
+On every pull request and push to `main`, GitHub Actions runs lint and Jest tests (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)). Merges to `main` also trigger the Android release and wiki publish workflows.
 
 ## Get started
 
 1. Install dependencies
 
    ```bash
-   npm install
+   pnpm install
    ```
 
 2. Start the app
