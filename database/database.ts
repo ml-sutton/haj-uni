@@ -142,7 +142,7 @@ export async function registerWithMnemonic(
 /**
  * Whether the account was created with BIP39 recovery (mnemonic wrap present).
  *
- * @returns `true` when {@link WRAPPED_MASTER_MNEMONIC_KEY} has a stored value.
+ * @returns `true` when the mnemonic-wrapped master key is present in secure storage.
  */
 export async function hasRecoveryEnabled(): Promise<boolean> {
   const w = await secureGetItem(WRAPPED_MASTER_MNEMONIC_KEY);

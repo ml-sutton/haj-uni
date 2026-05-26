@@ -8,7 +8,8 @@ const SYNC_INTERVAL_MS = 30_000;
  *
  * @remarks The PIN is never stored—only a hex `encryptionKey` derived after unlock.
  */
-type DatabaseStore = {
+/** Zustand state and actions for the encrypted user session. */
+export type DatabaseStore = {
   /** Encrypted user data. Source of truth for (tabs); synced to DB periodically and on blur. */
   user: User | null;
   /** Whether the user has an active session (unlocked). */

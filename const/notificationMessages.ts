@@ -21,7 +21,7 @@ function GetDiscreteNotificationMessage(): string {
 /**
  * Picks a random notification body based on discrete mode.
  *
- * @param isDiscrete - When `true`, uses {@link GetDiscreteNotificationMessage}; otherwise a random entry from {@link notificationMessages}.
+ * @param isDiscrete - When `true`, uses discrete-mode copy; otherwise a random default reminder message.
  * @returns Notification body text for the dose reminder.
  */
 function GetNotificationMessage(isDiscrete: boolean): string {

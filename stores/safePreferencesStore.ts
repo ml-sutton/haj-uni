@@ -8,7 +8,8 @@ import { readSafeDBObject, writeSafeDBObject } from "@/database/database";
  *
  * @remarks Updates persist asynchronously to the safe DB object; use {@link hydrateFromDb} on tabs mount.
  */
-type SafePreferencesStore = {
+/** Zustand state for non-encrypted app preferences. */
+export type SafePreferencesStore = {
   /** All safe preference fields; source of truth while tabs are active. */
   theme: SafePreferences["theme"];
   discreteMode: SafePreferences["discreteMode"];

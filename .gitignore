@@ -17,7 +17,9 @@ build/
 *.p12
 *.key
 *.mobileprovision
-docs/
+# Local docs; API_README.md is tracked for TypeDoc
+docs/*
+!docs/API_README.md
 # Metro
 .metro-health-check*
 

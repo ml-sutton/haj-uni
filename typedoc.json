@@ -23,5 +23,20 @@
   "excludePrivate": true,
   "excludeInternal": true,
   "excludeExternals": true,
-  "skipErrorChecking": true
+  "skipErrorChecking": true,
+  "validation": {
+    "notExported": false,
+    "invalidLink": false
+  },
+  "externalSymbolLinkMappings": {
+    "@firebase/app": {
+      "FirebaseApp": "https://firebase.google.com/docs/reference/js/app.firebaseapp"
+    },
+    "firebase/auth": {
+      "Auth": "https://firebase.google.com/docs/reference/js/auth.auth"
+    },
+    "@firebase/firestore": {
+      "Firestore": "https://firebase.google.com/docs/reference/js/firestore_.firestore"
+    }
+  }
 }

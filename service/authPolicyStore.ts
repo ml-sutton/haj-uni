@@ -82,7 +82,7 @@ export async function resetFailedPinAttempts(): Promise<void> {
  * Removes auth policy and failed-attempt counters from secure storage.
  *
  * @returns Resolves when both keys are cleared.
- * @remarks Typically invoked during {@link runSelfDestruct} or full account wipe—not on ordinary logout unless data is being destroyed.
+ * @remarks Typically invoked during {@link privacyService.runSelfDestruct} or full account wipe—not on ordinary logout unless data is being destroyed.
  */
 export async function clearAuthPolicyState(): Promise<void> {
   await secureMultiRemove([POLICY_KEY, FAILED_ATTEMPTS_KEY]);

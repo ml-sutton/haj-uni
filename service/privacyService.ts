@@ -106,7 +106,7 @@ export function areNotificationsEnabled(): boolean {
  * Whether biometric unlock is enabled in user preferences.
  *
  * @returns Current value from the safe preferences store.
- * @remarks Reflects preference only; device capability is checked separately in {@link isBiometricUnlockAvailable}.
+ * @remarks Reflects preference only; device capability is checked separately in {@link biometricKeyStore.isBiometricUnlockAvailable}.
  */
 export function isBiometricEnabled(): boolean {
   return getSafePreferences().biometricEnabled;

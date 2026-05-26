@@ -15,7 +15,8 @@ export type MapCoordinates = {
   longitude: number;
 };
 
-type UsePharmacyMapLocationResult = {
+/** Return value of {@link usePharmacyMapLocation}. */
+export type UsePharmacyMapLocationResult = {
   coords: MapCoordinates | null;
   error: string | null;
   loading: boolean;

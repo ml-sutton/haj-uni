@@ -12,7 +12,7 @@ import { securePreferencesSchema } from "./preferences";
  * @property preferences - PIN-protected preference fields (self-destruct threshold, recovery, etc.).
  * @property notes - User-authored notes; defaults to an empty array when omitted in JSON.
  */
-const userSchema = z.object({
+export const userSchema = z.object({
   username: z.string(),
   pronouns: z.array(z.string()),
   medications: z.array(medicationSchema),
