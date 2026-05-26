@@ -1,3 +1,9 @@
+import {
+  BATTERY_TOO_LOW_LOCATION_MESSAGE,
+  isBatteryTooLowForLocation,
+  MIN_BATTERY_FRACTION_FOR_LOCATION,
+} from "@/utils/batteryPolicy";
+import * as Battery from "expo-battery";
 import * as Location from "expo-location";
 import { useEffect, useRef, useState } from "react";
 
@@ -10,22 +16,56 @@ type UsePharmacyMapLocationResult = {
   coords: MapCoordinates | null;
   error: string | null;
   loading: boolean;
+  batteryBlocked: boolean;
 };
 
 /**
  * Foreground location updates only while the caller is mounted.
- * Subscription is removed on unmount — do not use outside the pharmacy map screen.
+ * Blocked when battery is below 30%. Subscription removed on unmount.
  */
 export function usePharmacyMapLocation(): UsePharmacyMapLocationResult {
   const [coords, setCoords] = useState<MapCoordinates | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [batteryBlocked, setBatteryBlocked] = useState(false);
   const subscriptionRef = useRef<Location.LocationSubscription | null>(null);
+  const batteryListenerRef = useRef<Battery.Subscription | null>(null);
+
+  const stopLocationTracking = () => {
+    subscriptionRef.current?.remove();
+    subscriptionRef.current = null;
+    setCoords(null);
+  };
+
+  const blockForLowBattery = () => {
+    stopLocationTracking();
+    setBatteryBlocked(true);
+    setError(BATTERY_TOO_LOW_LOCATION_MESSAGE);
+    setLoading(false);
+  };
 
   useEffect(() => {
     let cancelled = false;
 
     void (async () => {
+      if (await isBatteryTooLowForLocation()) {
+        if (!cancelled) blockForLowBattery();
+        return;
+      }
+
+      if (await Battery.isAvailableAsync()) {
+        batteryListenerRef.current = Battery.addBatteryLevelListener(
+          ({ batteryLevel }) => {
+            if (
+              batteryLevel >= 0 &&
+              batteryLevel < MIN_BATTERY_FRACTION_FOR_LOCATION
+            ) {
+              blockForLowBattery();
+            }
+          }
+        );
+      }
+
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (cancelled) return;
 
@@ -35,17 +75,27 @@ export function usePharmacyMapLocation(): UsePharmacyMapLocationResult {
         return;
       }
 
+      if (await isBatteryTooLowForLocation()) {
+        if (!cancelled) blockForLowBattery();
+        return;
+      }
+
       try {
         const initial = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
-        if (!cancelled) {
-          setCoords({
-            latitude: initial.coords.latitude,
-            longitude: initial.coords.longitude,
-          });
-          setLoading(false);
+        if (cancelled) return;
+
+        if (await isBatteryTooLowForLocation()) {
+          blockForLowBattery();
+          return;
         }
+
+        setCoords({
+          latitude: initial.coords.latitude,
+          longitude: initial.coords.longitude,
+        });
+        setLoading(false);
 
         subscriptionRef.current = await Location.watchPositionAsync(
           {
@@ -70,10 +120,11 @@ export function usePharmacyMapLocation(): UsePharmacyMapLocationResult {
 
     return () => {
       cancelled = true;
-      subscriptionRef.current?.remove();
-      subscriptionRef.current = null;
+      stopLocationTracking();
+      batteryListenerRef.current?.remove();
+      batteryListenerRef.current = null;
     };
   }, []);
 
-  return { coords, error, loading };
+  return { coords, error, loading, batteryBlocked };
 }
