@@ -1,4 +1,4 @@
-import { triggerQuickExit } from "@/service/privacyService";
+import { performQuickExitWithPanic } from "@/service/privacyService";
 import {
   getGradientColors,
   primaryTextColor,
@@ -9,14 +9,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { usePathname, useRouter, useSegments } from "expo-router";
 import { useMemo } from "react";
-import {
-  BackHandler,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import BlueLineart from "@/assets/images/blue-lineart.svg";
@@ -128,11 +121,7 @@ export function TitleBar({ title: titleOverride }: TitleBarProps = {}) {
             router.replace("/(tabs)");
           }}
           onLongPress={() => {
-            triggerQuickExit(() => router.replace("/login")).then((didQuickExit) => {
-              if (didQuickExit) return;
-              if (Platform.OS === "android") BackHandler.exitApp();
-              if (Platform.OS === "ios") throw new Error("Panic: user-initiated crash");
-            });
+            void performQuickExitWithPanic(() => router.replace("/login"));
           }}
         >
           <LineartSvg

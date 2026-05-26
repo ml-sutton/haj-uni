@@ -1,3 +1,4 @@
+import { QuickExitGyroscopeListener } from "@/components/QuickExitGyroscopeListener";
 import {
   ThemeProvider,
   cardBackgroundColor,
@@ -33,37 +34,40 @@ function ThemedStack() {
   });
 
   return (
-    <Stack
-      screenOptions={{
-        headerStyle,
-        headerTintColor,
-      }}
-    >
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="getStarted" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="login"
-        options={{ headerShown: false, gestureEnabled: false }}
-      />
-      <Stack.Screen name="register" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="firebase-sign-in"
-        options={{ title: "Firebase", headerShown: true }}
-      />
-      <Stack.Screen
-        name="firebase-logged-in"
-        options={{ title: "Cloud sync", headerShown: true }}
-      />
-      <Stack.Screen name="recover" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="(tabs)"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="active-dose"
-        options={{ headerShown: false, gestureEnabled: false }}
-      />
-    </Stack>
+    <>
+      <QuickExitGyroscopeListener />
+      <Stack
+        screenOptions={{
+          headerStyle,
+          headerTintColor,
+        }}
+      >
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="getStarted" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="login"
+          options={{ headerShown: false, gestureEnabled: false }}
+        />
+        <Stack.Screen name="register" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="firebase-sign-in"
+          options={{ title: "Firebase", headerShown: true }}
+        />
+        <Stack.Screen
+          name="firebase-logged-in"
+          options={{ title: "Cloud sync", headerShown: true }}
+        />
+        <Stack.Screen name="recover" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="(tabs)"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="active-dose"
+          options={{ headerShown: false, gestureEnabled: false }}
+        />
+      </Stack>
+    </>
   );
 }
 
