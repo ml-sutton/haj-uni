@@ -234,6 +234,25 @@ export async function hasDatabaseObject(): Promise<boolean> {
   return raw !== null;
 }
 
+export type EncryptedBackupPayload = {
+  encrypted: string;
+  salt: string;
+  wrappedMasterByPin?: string | null;
+  wrappedMasterByMnemonic?: string | null;
+  safePreferences?: SafePreferences;
+};
+
+function parseEncryptedBackupPayload(json: string): EncryptedBackupPayload {
+  const data = parseJson(json) as EncryptedBackupPayload;
+  if (!data?.encrypted || !data?.salt) {
+    throw new Error("Invalid backup format");
+  }
+  if (data.safePreferences != null) {
+    data.safePreferences = validateSafePreferences(data.safePreferences);
+  }
+  return data;
+}
+
 /** Export encrypted payload and salt as JSON string for backup. Throws if no data. */
 export async function getEncryptedDataForExport(): Promise<string> {
   const encrypted = await AsyncStorage.getItem(ENCRYPTED_STORAGE_KEY);
@@ -241,12 +260,43 @@ export async function getEncryptedDataForExport(): Promise<string> {
   if (!encrypted || !salt) throw new Error("No data to export");
   const wrappedPin = await AsyncStorage.getItem(WRAPPED_MASTER_PIN_KEY);
   const wrappedMnemonic = await AsyncStorage.getItem(WRAPPED_MASTER_MNEMONIC_KEY);
-  return JSON.stringify({
+  let safePreferences: SafePreferences | undefined;
+  try {
+    safePreferences = await readSafeDBObject();
+  } catch {
+    safePreferences = undefined;
+  }
+  const payload: EncryptedBackupPayload = {
     encrypted,
     salt,
     wrappedMasterByPin: wrappedPin,
     wrappedMasterByMnemonic: wrappedMnemonic,
-  });
+    safePreferences,
+  };
+  return JSON.stringify(payload);
+}
+
+/** Restore encrypted backup from export JSON (e.g. Firestore download). Overwrites local DB keys. */
+export async function importEncryptedBackup(json: string): Promise<void> {
+  const data = parseEncryptedBackupPayload(json);
+  await AsyncStorage.setItem(ENCRYPTED_STORAGE_KEY, data.encrypted);
+  await AsyncStorage.setItem(SALT_STORAGE_KEY, data.salt);
+  if (data.wrappedMasterByPin) {
+    await AsyncStorage.setItem(WRAPPED_MASTER_PIN_KEY, data.wrappedMasterByPin);
+  } else {
+    await AsyncStorage.removeItem(WRAPPED_MASTER_PIN_KEY);
+  }
+  if (data.wrappedMasterByMnemonic) {
+    await AsyncStorage.setItem(
+      WRAPPED_MASTER_MNEMONIC_KEY,
+      data.wrappedMasterByMnemonic
+    );
+  } else {
+    await AsyncStorage.removeItem(WRAPPED_MASTER_MNEMONIC_KEY);
+  }
+  if (data.safePreferences) {
+    await writeSafeDBObject(data.safePreferences);
+  }
 }
 
 /** Permanently removes all stored app data (encrypted user data, salt, safe prefs). Use for self-destruct only. */

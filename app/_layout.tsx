@@ -52,7 +52,7 @@ function ThemedStack() {
       />
       <Stack.Screen
         name="firebase-logged-in"
-        options={{ title: "Signed in", headerShown: true }}
+        options={{ title: "Cloud sync", headerShown: true }}
       />
       <Stack.Screen name="recover" options={{ headerShown: false }} />
       <Stack.Screen
