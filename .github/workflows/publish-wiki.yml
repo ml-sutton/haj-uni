@@ -64,15 +64,19 @@ jobs:
             exit 1
           fi
 
-          if git clone "$WIKI_URL" "$WIKI_DIR" 2>/dev/null; then
+          WIKI_BRANCH=master
+
+          if git clone --depth 1 "$WIKI_URL" "$WIKI_DIR" 2>/dev/null; then
             echo "Cloned existing wiki"
+            CLONED_BRANCH=$(git -C "$WIKI_DIR" branch --show-current)
+            if [ -n "$CLONED_BRANCH" ] && [ "$CLONED_BRANCH" != "HEAD" ]; then
+              WIKI_BRANCH="$CLONED_BRANCH"
+            fi
           else
             echo "Initializing new wiki repository"
             mkdir -p "$WIKI_DIR"
-            cd "$WIKI_DIR"
-            git init
-            git remote add origin "$WIKI_URL"
-            cd -
+            git -C "$WIKI_DIR" init -b master
+            git -C "$WIKI_DIR" remote add origin "$WIKI_URL"
           fi
 
           cd "$WIKI_DIR"
@@ -89,5 +93,6 @@ jobs:
           fi
 
           git commit -m "docs: update API reference from ${GITHUB_SHA:0:7}"
-          git branch -M master 2>/dev/null || true
-          git push -u origin master 2>/dev/null || git push -u origin main
+          git checkout -B "$WIKI_BRANCH"
+          echo "Pushing to wiki branch: $WIKI_BRANCH"
+          git push origin "$WIKI_BRANCH"
