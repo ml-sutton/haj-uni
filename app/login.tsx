@@ -351,6 +351,23 @@ export default function Login() {
           </Pressable>
         ) : null}
 
+        <Pressable
+          style={({ pressed }) => [
+            styles.firebaseRow,
+            { borderColor: isDark ? "rgba(255,255,255,0.4)" : PRIMARY_BUTTON_BG },
+            pressed && !busy && styles.firebaseRowPressed,
+            busy && styles.buttonDisabled,
+          ]}
+          onPress={() => router.push("/firebase-sign-in" as any)}
+          disabled={busy}
+          accessibilityRole="button"
+          accessibilityLabel="Pull from Firebase"
+        >
+          <Text style={[styles.firebaseRowText, { color: labelColor }]}>
+            Pull from firebase
+          </Text>
+        </Pressable>
+
         {recoveryAvailable ? (
           <Pressable
             style={({ pressed }) => [styles.recoverRow, pressed && { opacity: 0.75 }]}
@@ -480,6 +497,23 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   biometricButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  firebaseRow: {
+    marginTop: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    minWidth: 200,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  firebaseRowPressed: {
+    opacity: 0.85,
+  },
+  firebaseRowText: {
     fontSize: 16,
     fontWeight: "600",
   },

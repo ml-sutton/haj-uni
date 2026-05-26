@@ -46,6 +46,14 @@ function ThemedStack() {
         options={{ headerShown: false, gestureEnabled: false }}
       />
       <Stack.Screen name="register" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="firebase-sign-in"
+        options={{ title: "Firebase", headerShown: true }}
+      />
+      <Stack.Screen
+        name="firebase-logged-in"
+        options={{ title: "Signed in", headerShown: true }}
+      />
       <Stack.Screen name="recover" options={{ headerShown: false }} />
       <Stack.Screen
         name="(tabs)"
