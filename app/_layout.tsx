@@ -10,10 +10,21 @@ import { useSafePreferencesStore } from "@/stores/safePreferencesStore";
 import { Stack } from "expo-router";
 import { useEffect, useRef } from "react";
 
+/**
+ * Root stack navigator with theme-aware headers and one-time app bootstrap.
+ *
+ * @remarks
+ * Used inside {@link RootLayout}. Registers all top-level Expo Router screens
+ * (`index`, auth flows, tabs, `active-dose`, `find-pharmacies`) and mounts
+ * {@link QuickExitGyroscopeListener} for privacy quick-exit.
+ *
+ * @returns The themed `Stack` navigator for the app shell.
+ */
 function ThemedStack() {
   const { theme, resolvedTheme, highContrast, setTheme } = useTheme();
   const hasHydratedRef = useRef(false);
 
+  // One-time: migrate legacy secure storage, then hydrate theme from safe preferences.
   useEffect(() => {
     if (hasHydratedRef.current) return;
     hasHydratedRef.current = true;
@@ -77,6 +88,15 @@ function ThemedStack() {
   );
 }
 
+/**
+ * Application root layout wrapping the navigation tree in {@link ThemeProvider}.
+ *
+ * @remarks
+ * Expo Router entry at `app/_layout.tsx`. Provides global theme context and
+ * delegates screen routing to {@link ThemedStack}.
+ *
+ * @returns The root React element for the app.
+ */
 export default function RootLayout() {
   return (
     <ThemeProvider>

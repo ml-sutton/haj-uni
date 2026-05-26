@@ -1,9 +1,16 @@
+/**
+ * A point on the map used as route endpoints or polyline vertices.
+ */
 export type RouteCoordinate = {
   latitude: number;
   longitude: number;
 };
 
+/**
+ * Walking route geometry and summary statistics from origin to pharmacy.
+ */
 export type PharmacyRoute = {
+  /** Ordered path from start to destination (may be two points if routing failed). */
   coordinates: RouteCoordinate[];
   distanceMeters: number;
   durationSeconds: number;
@@ -34,7 +41,12 @@ function getGoogleMapsApiKey(): string | null {
   return process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() || null;
 }
 
-/** Decode Google's encoded polyline format. */
+/**
+ * Decodes Google's encoded polyline format into latitude/longitude points.
+ *
+ * @param encoded - Overview polyline string from Directions API.
+ * @returns Decoded coordinate sequence.
+ */
 function decodePolyline(encoded: string): RouteCoordinate[] {
   const coordinates: RouteCoordinate[] = [];
   let index = 0;
@@ -158,7 +170,14 @@ async function fetchGoogleDirectionsRoute(
   };
 }
 
-/** Walking route polyline from the user to a pharmacy. */
+/**
+ * Fetches a walking route polyline from the user to a pharmacy.
+ *
+ * @param from - User location.
+ * @param to - Pharmacy location.
+ * @returns Route with coordinates, distance, and estimated duration.
+ * @remarks Prefers Google Directions when API key is configured; falls back to OSRM, then a straight-line estimate. Coordinates are sent to third-party routing services.
+ */
 export async function fetchWalkingRouteToPharmacy(
   from: RouteCoordinate,
   to: RouteCoordinate

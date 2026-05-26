@@ -1,3 +1,4 @@
+/** Theme context, hooks, token types, and shared color helpers for the app shell. */
 export { ThemeProvider, useTheme, useThemeOptional } from "./ThemeContext";
 export type { ThemeProviderProps } from "./ThemeContext";
 export type {

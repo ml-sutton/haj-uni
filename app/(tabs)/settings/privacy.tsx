@@ -35,6 +35,16 @@ import {
   View,
 } from "react-native";
 
+/**
+ * Privacy and safety settings (discrete mode, self-destruct, biometrics, notifications).
+ *
+ * @remarks
+ * Expo Router file route: `/settings/privacy`
+ * (`app/(tabs)/settings/privacy.tsx`). Mixes safe preferences (local) with secure
+ * preferences stored in the encrypted user profile.
+ *
+ * @returns Privacy toggles and numeric policy controls.
+ */
 export default function PrivacySettings() {
   const { resolvedTheme, highContrast } = useTheme();
   const isDark = resolvedTheme === "dark";

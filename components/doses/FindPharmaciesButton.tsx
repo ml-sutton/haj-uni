@@ -7,12 +7,30 @@ import {
 import { useRouter, type Href } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-type FindPharmaciesButtonProps = {
+/**
+ * Props for {@link FindPharmaciesButton}.
+ */
+export type FindPharmaciesButtonProps = {
+  /**
+   * @param medicationId - Medication id passed to the pharmacy map screen query string.
+   */
   medicationId: string;
+  /**
+   * @param medicationName - Display name shown in copy and navigation accessibility labels.
+   */
   medicationName: string;
+  /**
+   * @param compact - When true, renders a single compact button instead of the full supply-out banner.
+   */
   compact?: boolean;
 };
 
+/**
+ * Navigates the user to the nearby-pharmacies map when medication supply is depleted.
+ *
+ * @param props - Medication context and layout variant.
+ * @returns Either a compact pressable link or a banner with title, message, and primary button.
+ */
 export function FindPharmaciesButton({
   medicationId,
   medicationName,

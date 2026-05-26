@@ -10,6 +10,14 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+/**
+ * Credits screen listing contributors from {@link Credits}.
+ *
+ * @remarks
+ * Expo Router file route: `/settings/credits` (`app/(tabs)/settings/credits.tsx`).
+ *
+ * @returns Scrollable list of contributor cards.
+ */
 export default function CreditsScreen() {
   const { resolvedTheme, highContrast } = useTheme();
   const cardBg = highContrast

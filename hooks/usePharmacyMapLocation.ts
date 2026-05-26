@@ -7,6 +7,9 @@ import * as Battery from "expo-battery";
 import * as Location from "expo-location";
 import { useEffect, useRef, useState } from "react";
 
+/**
+ * WGS84 coordinates for pharmacy map and routing.
+ */
 export type MapCoordinates = {
   latitude: number;
   longitude: number;
@@ -20,8 +23,14 @@ type UsePharmacyMapLocationResult = {
 };
 
 /**
- * Foreground location updates only while the caller is mounted.
- * Blocked when battery is below 30%. Subscription removed on unmount.
+ * Provides foreground location updates for the pharmacy map while mounted.
+ *
+ * @returns `coords` (latest fix or null), `error` message, `loading` until first fix or failure, and `batteryBlocked` when tracking stopped due to low battery.
+ * @remarks Requests foreground permission only. Stops watching when battery drops below {@link MIN_BATTERY_FRACTION_FOR_LOCATION} (30%). Subscription is removed on unmount.
+ * @example
+ * ```tsx
+ * const { coords, error, loading, batteryBlocked } = usePharmacyMapLocation();
+ * ```
  */
 export function usePharmacyMapLocation(): UsePharmacyMapLocationResult {
   const [coords, setCoords] = useState<MapCoordinates | null>(null);

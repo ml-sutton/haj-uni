@@ -31,13 +31,34 @@ const PRESETS: { key: ThemePresetKey; label: string }[] = [
   { key: "colonthree", label: "colonthree" },
 ];
 
+/**
+ * Props for {@link PreferencesStep}.
+ */
 export interface PreferencesStepProps {
+  /**
+   * @param safePreferences - Non-encrypted preference values (theme, privacy toggles, notifications).
+   */
   safePreferences: SafePreferences;
+  /**
+   * @param securePreferences - Encrypted preference values (self-destruct threshold, doses per dosage).
+   */
   securePreferences: SecurePreferences;
+  /**
+   * @param onSafeChange - Called with the full updated safe preferences object when any safe field changes.
+   */
   onSafeChange: (safe: SafePreferences) => void;
+  /**
+   * @param onSecureChange - Called with the full updated secure preferences object when any secure field changes.
+   */
   onSecureChange: (secure: SecurePreferences) => void;
 }
 
+/**
+ * Registration step for theme preset, privacy toggles, notifications, biometrics, and numeric security settings.
+ *
+ * @param props - Current preference snapshots and change handlers.
+ * @returns A scrollable form with dropdown, switches, and number inputs bound to registration state.
+ */
 export function PreferencesStep({
   safePreferences,
   securePreferences,
@@ -55,13 +76,19 @@ export function PreferencesStep({
   const numberInputColor = isDark ? "#fff" : "#1a1a1a";
   const placeholderColor = isDark ? "rgba(255,255,255,0.5)" : "#888";
 
-  const setSafe = (patch: Partial<SafePreferences>) => {
-    onSafeChange({ ...safePreferences, ...patch });
-  };
+  const setSafe = useCallback(
+    (patch: Partial<SafePreferences>) => {
+      onSafeChange({ ...safePreferences, ...patch });
+    },
+    [onSafeChange, safePreferences]
+  );
 
-  const setSecure = (patch: Partial<SecurePreferences>) => {
-    onSecureChange({ ...securePreferences, ...patch });
-  };
+  const setSecure = useCallback(
+    (patch: Partial<SecurePreferences>) => {
+      onSecureChange({ ...securePreferences, ...patch });
+    },
+    [onSecureChange, securePreferences]
+  );
 
   const [presetOpen, setPresetOpen] = useState(false);
   const selectedPreset = useMemo<ThemePresetKey>(() => {
@@ -78,7 +105,7 @@ export function PreferencesStep({
       setSafe({ theme: preset });
       setPresetOpen(false);
     },
-    [safePreferences, onSafeChange]
+    [setSafe]
   );
 
   return (

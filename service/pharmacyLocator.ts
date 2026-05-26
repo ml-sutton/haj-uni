@@ -1,5 +1,10 @@
+/**
+ * A pharmacy or chemist near the user's location for map display.
+ */
 export type PharmacyPlace = {
+  /** Stable id (`place_id` from Google or `type/id` from OpenStreetMap). */
   id: string;
+  /** Display name; may be generic `"Pharmacy"` when OSM has no name tag. */
   name: string;
   latitude: number;
   longitude: number;
@@ -170,7 +175,16 @@ async function fetchGooglePharmacies(
   }));
 }
 
-/** Pharmacies within `radiusMeters` of a point (default 2 km). */
+/**
+ * Fetches pharmacies within a radius of a geographic point.
+ *
+ * @param latitude - Center latitude (degrees).
+ * @param longitude - Center longitude (degrees).
+ * @param radiusMeters - Search radius; defaults to 2000 m when omitted.
+ * @returns Sorted list of nearby places; may be empty.
+ * @throws When all providers fail (Overpass after Google fallback).
+ * @remarks Uses Google Places when `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` is set and returns results; otherwise OpenStreetMap Overpass. Sends coordinates to third-party APIs—see privacy policy.
+ */
 export async function fetchPharmaciesNear(
   latitude: number,
   longitude: number,

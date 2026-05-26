@@ -17,6 +17,15 @@ import {
   View,
 } from "react-native";
 
+/**
+ * Home tab: personalized welcome, dose calendar, and notepad shortcuts.
+ *
+ * @remarks
+ * Expo Router file route: `/(tabs)` / `/(tabs)/index` (`app/(tabs)/index.tsx`).
+ * Requires decrypted user in {@link useDatabaseStore}.
+ *
+ * @returns The home dashboard or loading/unauthenticated placeholders.
+ */
 export default function Home() {
   const { resolvedTheme } = useTheme();
   const encryptionKey = useDatabaseStore((s) => s.encryptionKey);

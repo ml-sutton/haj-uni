@@ -1,3 +1,7 @@
+/**
+ * Global Jest setup: Testing Library matchers, styled-components snapshot support,
+ * Expo Router mock, and stubs for AsyncStorage, SecureStore, database, and LinearGradient.
+ */
 import "@testing-library/jest-native/extend-expect";
 import "jest-styled-components";
 import "./__tests__/helpers/mockExpoRouter";

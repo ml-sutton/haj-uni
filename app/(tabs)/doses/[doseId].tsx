@@ -8,8 +8,7 @@ import {
   cardBackgroundColor,
 } from "@/contexts/theme";
 import type { IngestionMethod, MedicationType, Unit } from "@/models/dosage";
-import { persistStoreToDatabase } from "@/stores/databaseStore";
-import { useDatabaseStore } from "@/stores/databaseStore";
+import { persistStoreToDatabase, useDatabaseStore } from "@/stores/databaseStore";
 import { findDoseById } from "@/utils/doseQueries";
 import {
   isMedicationSupplyDepleted,
@@ -41,6 +40,16 @@ const INGESTION_METHODS: IngestionMethod[] = [
 ];
 const UNITS: Unit[] = ["mg", "mL", "mcg", "g", "IU", "patch", "Other"];
 
+/**
+ * Detail view for a single dose instance and its parent dosage schedule.
+ *
+ * @remarks
+ * Expo Router dynamic route: `/(tabs)/doses/[doseId]`
+ * (`app/(tabs)/doses/[doseId].tsx`). Supports mark taken/undo, inline dosage edit,
+ * adherence summary, and pharmacy finder when supply is depleted.
+ *
+ * @returns Dose detail UI or not-found/auth states.
+ */
 export default function DoseDetailScreen() {
   const params = useLocalSearchParams<{ doseId: string }>();
   const doseId = typeof params.doseId === "string" ? params.doseId : params.doseId?.[0] ?? null;

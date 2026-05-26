@@ -1,6 +1,16 @@
 import { Linking, Platform } from "react-native";
 
-/** Opens the system maps app with turn-by-turn directions to a destination. */
+/**
+ * Opens the system maps app with turn-by-turn walking directions to a destination.
+ *
+ * @param latitude - Destination latitude (WGS84).
+ * @param longitude - Destination longitude (WGS84).
+ * @param label - Optional place name (used on web fallback URLs when provided).
+ *
+ * @remarks
+ * Uses `maps://` on iOS, `google.navigation:` on Android, and Google Maps web on other platforms.
+ * If the native URL cannot be opened, falls back to a Google Maps walking directions web link.
+ */
 export async function openMapsDirections(
   latitude: number,
   longitude: number,

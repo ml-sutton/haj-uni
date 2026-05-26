@@ -40,6 +40,16 @@ import { useDatabaseStore } from "@/stores/databaseStore";
 const PIN_LENGTH = 6;
 const DIGITS = Array.from({ length: PIN_LENGTH }, (_, i) => i);
 
+/**
+ * PIN unlock screen with optional biometric unlock and account recovery links.
+ *
+ * @remarks
+ * Expo Router file route: `/login` (`app/login.tsx`). Blocks back navigation until
+ * unlock succeeds. Records failed PIN attempts and may trigger self-destruct when
+ * enabled. Redirects to `/` on success.
+ *
+ * @returns The login screen UI.
+ */
 export default function Login() {
   const router = useRouter();
   const navigation = useNavigation();
@@ -58,6 +68,7 @@ export default function Login() {
     highContrast,
   });
 
+  // Prevent leaving login via gesture/back until unlock completes or self-destruct redirects.
   useEffect(() => {
     const unsubscribe = navigation.addListener("beforeRemove", (e) => {
       if (!allowingRemoveRef.current) e.preventDefault();
@@ -78,6 +89,7 @@ export default function Login() {
   const biometricEnabledRef = useRef(false);
   const didAutoBiometricRef = useRef(false);
 
+  // Load whether mnemonic recovery is configured for this device.
   useEffect(() => {
     let cancelled = false;
     hasRecoveryEnabled()
@@ -107,6 +119,7 @@ export default function Login() {
   const digits = pin.padEnd(PIN_LENGTH, " ").split("");
   const canSubmit = pin.length === PIN_LENGTH;
 
+  // Read safe prefs to decide biometric UI, self-destruct thresholds, and web hints.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -138,6 +151,11 @@ export default function Login() {
     };
   }, []);
 
+  /**
+   * Decrypts user data with the derived key and navigates into the app.
+   *
+   * @param key - Master encryption key from PIN or biometrics.
+   */
   const completeUnlock = useCallback(
     async (key: string) => {
       const user = await readEncryptedDBObject(key);
@@ -158,6 +176,7 @@ export default function Login() {
     [setEncryptionKey, setUser, setIsAuthed, router]
   );
 
+  // Attempt biometric unlock once when native biometrics are available.
   useEffect(() => {
     if (!showBiometricUnlock || loading || didAutoBiometricRef.current) return;
     didAutoBiometricRef.current = true;

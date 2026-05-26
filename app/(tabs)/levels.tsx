@@ -7,6 +7,14 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { StyleSheet, Text, View } from "react-native";
 
+/**
+ * Levels tab placeholder (hormone levels tracking not yet implemented).
+ *
+ * @remarks
+ * Expo Router file route: `/(tabs)/levels` (`app/(tabs)/levels.tsx`).
+ *
+ * @returns A stub screen with a not-implemented message.
+ */
 export default function Levels() {
   const { resolvedTheme } = useTheme();
   const titleColor = primaryTextColor(resolvedTheme);

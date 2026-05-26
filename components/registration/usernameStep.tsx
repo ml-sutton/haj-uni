@@ -7,12 +7,30 @@ import {
   View,
 } from "react-native";
 
+/**
+ * Props for {@link UsernameStep}.
+ */
 export interface UsernameStepProps {
+  /**
+   * @param value - Current username field text.
+   */
   value: string;
+  /**
+   * @param onChange - Called with the updated username on each keystroke.
+   */
   onChange: (username: string) => void;
+  /**
+   * @param error - Validation message shown below the input when present.
+   */
   error?: string;
 }
 
+/**
+ * Registration step for choosing a display username.
+ *
+ * @param props - Username value, change handler, and optional validation error.
+ * @returns A labeled text input with error styling when validation fails.
+ */
 export function UsernameStep({
   value,
   onChange,

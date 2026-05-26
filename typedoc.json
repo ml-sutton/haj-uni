@@ -1,0 +1,27 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "name": "HAJ API Reference",
+  "entryPoints": [
+    "./utils",
+    "./models",
+    "./service",
+    "./hooks",
+    "./stores",
+    "./lib",
+    "./database",
+    "./const"
+  ],
+  "entryPointStrategy": "expand",
+  "out": "build/wiki-docs",
+  "readme": "docs/API_README.md",
+  "tsconfig": "./tsconfig.json",
+  "plugin": ["typedoc-plugin-markdown"],
+  "entryFileName": "Home",
+  "hidePageHeader": true,
+  "hideBreadcrumbs": true,
+  "exclude": ["**/__tests__/**", "**/node_modules/**", "**/.expo/**"],
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "excludeExternals": true,
+  "skipErrorChecking": true
+}

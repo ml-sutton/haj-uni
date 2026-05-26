@@ -23,10 +23,25 @@ import {
   View,
 } from "react-native";
 
+/**
+ * Generates a client-side unique id for new notes.
+ *
+ * @returns A time- and random-based string id.
+ */
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
+/**
+ * Create or edit a single note (`noteId` or `new`).
+ *
+ * @remarks
+ * Expo Router dynamic route: `/(tabs)/notes/[noteId]`
+ * (`app/(tabs)/notes/[noteId].tsx`). Persists via {@link useDatabaseStore};
+ * delete is available for existing notes only.
+ *
+ * @returns Note editor UI or loading/not-found states.
+ */
 export default function NoteEditScreen() {
   const params = useLocalSearchParams<{ noteId: string }>();
   const noteId = typeof params.noteId === "string" ? params.noteId : params.noteId?.[0] ?? null;
@@ -53,6 +68,7 @@ export default function NoteEditScreen() {
     return (user.notes ?? []).find((n) => n.id === noteId) ?? null;
   }, [user, noteId, isNew]);
 
+  // Sync form fields when navigating between notes or entering edit mode.
   useEffect(() => {
     if (note) {
       setFormTitle(note.title);
@@ -61,7 +77,7 @@ export default function NoteEditScreen() {
       setFormTitle("");
       setFormBody("");
     }
-  }, [note?.id, isNew]);
+  }, [note, isNew]);
 
   const save = useCallback(() => {
     if (!user) return;

@@ -1,5 +1,6 @@
 /**
- * Theme mode: dark, light, follow system, or custom variants.
+ * User-selectable theme preset, including system follow and high-contrast variants.
+ * `"colonthree"` is a custom dark palette; `*HighContrast` map to stark black/white styling.
  */
 export type ThemeMode =
   | "dark"
@@ -20,24 +21,38 @@ export type ResolvedTheme = "dark" | "light";
 export type HighContrast = boolean;
 
 /**
- * Full theme state stored in context.
+ * Read-only theme state stored in context.
  */
 export interface ThemeState {
+  /**
+   * @param theme - Active theme mode preset or `"system"`.
+   */
   theme: ThemeMode;
-  /** Resolved theme for styling; follows system when theme is "system". */
+  /**
+   * @param resolvedTheme - Effective light or dark appearance used for colors (follows OS when theme is `"system"`).
+   */
   resolvedTheme: ResolvedTheme;
+  /**
+   * @param highContrast - Whether a high-contrast preset is active.
+   */
   highContrast: HighContrast;
 }
 
 /**
- * Actions to update theme state. All fields optional for partial updates.
+ * Actions to update theme state exposed by {@link ThemeProvider}.
  */
 export interface ThemeActions {
+  /**
+   * @param theme - Next theme mode (preset, system, or high-contrast variant).
+   */
   setTheme: (theme: ThemeMode) => void;
+  /**
+   * @param highContrast - When true, maps to `darkHighContrast` or `lightHighContrast` based on resolved appearance.
+   */
   setHighContrast: (highContrast: HighContrast) => void;
-  /** Toggle between dark and light. */
+  /** Toggles between dark and light resolved appearance (respects high-contrast variants). */
   toggleTheme: () => void;
-  /** Toggle high-contrast on/off. */
+  /** Toggles high-contrast on or off. */
   toggleHighContrast: () => void;
 }
 

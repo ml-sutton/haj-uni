@@ -1,8 +1,15 @@
 import type { PharmacyPlace } from "@/service/pharmacyLocator";
 
+/** Mean Earth radius in metres for haversine distance calculations. */
 const EARTH_RADIUS_M = 6_371_000;
 
-/** Great-circle distance in metres between two WGS84 points. */
+/**
+ * Great-circle distance in metres between two WGS84 coordinates (haversine formula).
+ *
+ * @param a - First point with `latitude` and `longitude` in degrees.
+ * @param b - Second point with `latitude` and `longitude` in degrees.
+ * @returns Distance in metres along the Earth's surface.
+ */
 export function distanceMeters(
   a: { latitude: number; longitude: number },
   b: { latitude: number; longitude: number }
@@ -18,11 +25,23 @@ export function distanceMeters(
   return 2 * EARTH_RADIUS_M * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
+/**
+ * Formats a distance in metres for display (metres or kilometres).
+ *
+ * @param meters - Distance from {@link distanceMeters} or similar.
+ * @returns `"250 m"` under 1 km, otherwise `"1.2 km"` with one decimal.
+ */
 export function formatDistance(meters: number): string {
   if (meters < 1000) return `${Math.round(meters)} m`;
   return `${(meters / 1000).toFixed(1)} km`;
 }
 
+/**
+ * Formats a walking duration in seconds as a short human-readable label.
+ *
+ * @param seconds - Route or estimate duration in seconds.
+ * @returns Such as `"12 min walk"` or `"1 hr 5 min walk"`.
+ */
 export function formatDuration(seconds: number): string {
   const mins = Math.round(seconds / 60);
   if (mins < 60) return `${mins} min walk`;
@@ -31,6 +50,13 @@ export function formatDuration(seconds: number): string {
   return m > 0 ? `${h} hr ${m} min walk` : `${h} hr walk`;
 }
 
+/**
+ * Finds the pharmacy closest to an origin by straight-line distance.
+ *
+ * @param origin - User or map centre coordinates.
+ * @param pharmacies - Candidate places from the locator service.
+ * @returns Closest {@link PharmacyPlace} with `distanceMeters` attached, or `null` if the list is empty.
+ */
 export function findClosestPharmacy(
   origin: { latitude: number; longitude: number },
   pharmacies: PharmacyPlace[]

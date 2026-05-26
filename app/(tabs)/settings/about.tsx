@@ -7,8 +7,16 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text } from "react-native";
 
+/**
+ * About screen with a short description of the HAJ app.
+ *
+ * @remarks
+ * Expo Router file route: `/settings/about` (`app/(tabs)/settings/about.tsx`).
+ *
+ * @returns Static about content.
+ */
 export default function AboutScreen() {
   const { resolvedTheme } = useTheme();
   const titleColor = primaryTextColor(resolvedTheme);

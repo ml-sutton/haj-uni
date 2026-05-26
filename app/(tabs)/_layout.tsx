@@ -20,6 +20,16 @@ const ACTIVE_DOSE_POLL_MS = 30_000;
 const TABS_DARK_GRADIENT = ["#6495ed", "#73c2fb"] as const;
 const TABS_LIGHT_GRADIENT = ["#FFA4B6", "#F19CBB"] as const;
 
+/**
+ * Main tab navigator (Home, Doses, Levels, Notes, Settings) with shared chrome.
+ *
+ * @remarks
+ * Expo Router layout at `app/(tabs)/_layout.tsx`. Runs {@link useStoreSync},
+ * hydrates theme preferences, and polls for active doses to redirect to
+ * `/active-dose` when a reminder window opens.
+ *
+ * @returns The themed bottom-tab navigator.
+ */
 export default function TabsLayout() {
   const { theme, resolvedTheme, highContrast, setTheme } = useTheme();
   const router = useRouter();
@@ -27,6 +37,7 @@ export default function TabsLayout() {
   const hasHydratedRef = useRef(false);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 
+  // Redirect to active-dose when an untaken dose enters its window; recheck on resume.
   useEffect(() => {
     const checkActiveDose = () => {
       const { user, isAuthed } = useDatabaseStore.getState();
@@ -54,6 +65,7 @@ export default function TabsLayout() {
     };
   }, [router]);
 
+  // One-time theme hydration from safe preferences after tabs mount.
   useEffect(() => {
     if (hasHydratedRef.current) return;
     hasHydratedRef.current = true;

@@ -40,10 +40,22 @@ function getAdherenceRate(user: User): number | null {
   return Math.round((taken / total) * 100);
 }
 
-type WelcomeProps = {
+/**
+ * Props for {@link Welcome}.
+ */
+export type WelcomeProps = {
+  /**
+   * @param user - Authenticated user for greeting, next dose, and adherence summary.
+   */
   user: User;
 };
 
+/**
+ * Home-screen welcome card with time-based greeting, next upcoming dose, and adherence percentage.
+ *
+ * @param props - User profile and medication schedule.
+ * @returns A themed card with a single summary message line.
+ */
 export function Welcome({ user }: WelcomeProps) {
   const { resolvedTheme } = useTheme();
   const titleColor = primaryTextColor(resolvedTheme);

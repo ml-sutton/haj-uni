@@ -15,12 +15,30 @@ import {
   View,
 } from "react-native";
 
+/**
+ * Props for {@link RecoveryPhraseStep}.
+ */
 export interface RecoveryPhraseStepProps {
+  /**
+   * @param mnemonic - Space-separated 24-word BIP39 recovery phrase to display (may be empty while generating).
+   */
   mnemonic: string;
+  /**
+   * @param acknowledged - Whether the user has confirmed they saved the phrase.
+   */
   acknowledged: boolean;
+  /**
+   * @param onAcknowledgedChange - Called when the acknowledgment checkbox is toggled.
+   */
   onAcknowledgedChange: (value: boolean) => void;
 }
 
+/**
+ * Registration step that displays the recovery mnemonic, copy action, and save confirmation.
+ *
+ * @param props - Recovery phrase step state and handlers.
+ * @returns A scrollable panel with phrase card, copy button, and acknowledgment checkbox.
+ */
 export function RecoveryPhraseStep({
   mnemonic,
   acknowledged,

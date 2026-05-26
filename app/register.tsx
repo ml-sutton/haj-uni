@@ -5,10 +5,25 @@ import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+/**
+ * New-account registration screen hosting the multi-step registration form.
+ *
+ * @remarks
+ * Expo Router file route: `/register` (`app/register.tsx`). Wraps
+ * {@link RegistrationForm} and offers a shortcut to Firebase sign-in for cloud
+ * restore during setup.
+ *
+ * @returns The registration screen layout.
+ */
 export default function Register() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
+  /**
+   * Registration completion callback; persistence is handled inside the form.
+   *
+   * @param _data - Validated registration payload (unused here).
+   */
   const handleSubmit = (_data: RegistrationFormData): void => {
     // Persistence runs inside RegistrationForm (save step); hook for analytics/tests.
   };

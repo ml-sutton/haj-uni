@@ -63,10 +63,23 @@ type StepId = (typeof STEPS)[number];
 
 const STEP_ORDER: StepId[] = [...STEPS];
 
+/**
+ * Props for {@link RegistrationForm}.
+ */
 export interface RegistrationFormProps {
+  /**
+   * @param onSubmit - Optional callback invoked after account data is persisted successfully.
+   */
   onSubmit?: (data: RegistrationFormData) => void | Promise<void>;
 }
 
+/**
+ * Multi-step onboarding wizard: username, pronouns, preferences, recovery phrase, PIN, save, welcome.
+ * Persists encrypted user data and preferences on the PIN step completion path.
+ *
+ * @param props - Optional post-save hook.
+ * @returns Full-screen registration UI with {@link TitleBar}, step progress, step content, and footer navigation.
+ */
 export function RegistrationForm({
   onSubmit,
 }: RegistrationFormProps): React.ReactElement {

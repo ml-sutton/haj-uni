@@ -4,8 +4,7 @@ import {
   primaryTextColor,
   secondaryTextColor,
 } from "@/contexts/theme";
-import { useDatabaseStore } from "@/stores/databaseStore";
-import { persistStoreToDatabase } from "@/stores/databaseStore";
+import { persistStoreToDatabase, useDatabaseStore } from "@/stores/databaseStore";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,6 +18,16 @@ import {
   View,
 } from "react-native";
 
+/**
+ * Dosage defaults: how many scheduled doses to generate per new dosage schedule.
+ *
+ * @remarks
+ * Expo Router file route: `/settings/dosage`
+ * (`app/(tabs)/settings/dosage.tsx`). Updates `user.preferences.dosesPerDosage`
+ * in the encrypted profile.
+ *
+ * @returns Dosage preference editor.
+ */
 export default function DosageSettings() {
   const { resolvedTheme, highContrast } = useTheme();
   const isDark = resolvedTheme === "dark";

@@ -5,9 +5,17 @@ import { useEffect, useRef } from "react";
 import { AppState, type AppStateStatus } from "react-native";
 
 /**
- * When (tabs) are mounted: hydrate store from DB if we have a key but no user,
- * then sync store → DB every SYNC_INTERVAL and when app goes to background/inactive.
- * Use this inside the tabs layout only.
+ * Keeps the encrypted user store in sync with on-disk data while the tabs layout is mounted.
+ *
+ * @returns Nothing; side effects only.
+ * @remarks On mount: hydrates `user` from DB when `encryptionKey` exists but `user` is null. Then persists store → DB every {@link SYNC_INTERVAL} and when the app leaves the active foreground state. Mount only inside the tabs layout.
+ * @example
+ * ```tsx
+ * export default function TabsLayout() {
+ *   useStoreSync();
+ *   return <Tabs />;
+ * }
+ * ```
  */
 export function useStoreSync(): void {
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);

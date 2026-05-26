@@ -1,16 +1,15 @@
 /** @type {import('expo/config').ExpoConfig} */
-const appJson = require("./app.json");
+module.exports = ({ config }) => {
+  const googleMapsApiKey =
+    process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() ||
+    process.env.GMAPS_API_KEY?.trim() ||
+    "";
 
-const googleMapsApiKey =
-  process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() ||
-  process.env.GMAPS_API_KEY?.trim() ||
-  "";
-
-module.exports = {
-  expo: {
-    ...appJson.expo,
+  return {
+    ...config,
     android: {
-      ...appJson.expo.android,
+      ...config.android,
+      package: "madi.haj.app",
       ...(googleMapsApiKey
         ? {
             config: {
@@ -21,5 +20,11 @@ module.exports = {
           }
         : {}),
     },
-  },
+    extra: {
+      ...config.extra,
+      eas: {
+        projectId: "a8562aba-6eab-4fce-9342-81554f90c0fc",
+      },
+    },
+  };
 };

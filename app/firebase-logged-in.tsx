@@ -29,11 +29,26 @@ import {
   View,
 } from "react-native";
 
+/**
+ * Formats cloud backup timestamp for display.
+ *
+ * @param date - Last Firestore backup time, or `null` if never synced.
+ * @returns Localized date/time string or `"Never"`.
+ */
 function formatSyncedAt(date: Date | null): string {
   if (!date) return "Never";
   return date.toLocaleString();
 }
 
+/**
+ * Cloud sync hub after Firebase authentication (upload/download encrypted backup).
+ *
+ * @remarks
+ * Expo Router file route: `/firebase-logged-in` (`app/firebase-logged-in.tsx`).
+ * Requires Firebase sign-in. Download clears local auth and sends user to PIN login.
+ *
+ * @returns Backup management UI or loading/redirect state.
+ */
 export default function FirebaseLoggedInScreen() {
   const router = useRouter();
   const { user, loading: authLoading } = useFirebaseUser();
@@ -62,6 +77,7 @@ export default function FirebaseLoggedInScreen() {
   const [busy, setBusy] = useState<"upload" | "download" | "signout" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Guard route: unauthenticated Firebase users go back to sign-in.
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
@@ -81,6 +97,7 @@ export default function FirebaseLoggedInScreen() {
     }
   }, []);
 
+  // On mount, detect local encrypted data and load cloud backup metadata.
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
