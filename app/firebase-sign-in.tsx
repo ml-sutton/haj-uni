@@ -7,11 +7,12 @@ import {
   PRIMARY_BUTTON_BG,
   useTheme,
 } from "@/contexts/theme";
+import { useFirebaseUser } from "@/hooks/useFirebaseUser";
 import { getFirebaseAuth, isFirebaseConfigured } from "@/lib/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -21,10 +22,12 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  View,
 } from "react-native";
 
 export default function FirebaseSignInScreen() {
   const router = useRouter();
+  const { user: firebaseUser, loading: authLoading } = useFirebaseUser();
   const { theme, resolvedTheme, highContrast } = useTheme();
   const gradientColors = getGradientColors(resolvedTheme, {
     themeMode: theme,
@@ -52,6 +55,11 @@ export default function FirebaseSignInScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (authLoading || !firebaseUser) return;
+    router.replace("/firebase-logged-in" as any);
+  }, [authLoading, firebaseUser, router]);
+
   const handleSignIn = useCallback(async () => {
     if (!isFirebaseConfigured()) {
       setError("Firebase env vars are missing. Set EXPO_PUBLIC_FIREBASE_* in your environment.");
@@ -71,12 +79,8 @@ export default function FirebaseSignInScreen() {
         trimmed,
         password
       );
-      const u = credential.user;
-      const label = u.email ?? u.uid;
-      router.replace({
-        pathname: "/firebase-logged-in" as any,
-        params: { user: label },
-      });
+      void credential.user;
+      router.replace("/firebase-logged-in" as any);
     } catch (e) {
       const message =
         e instanceof Error ? e.message : "Firebase sign-in failed";
@@ -85,6 +89,21 @@ export default function FirebaseSignInScreen() {
       setLoading(false);
     }
   }, [email, password, router]);
+
+  if (authLoading || firebaseUser) {
+    return (
+      <LinearGradient
+        colors={[...gradientColors]}
+        style={styles.gradient}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+      >
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color={titleColor} />
+        </View>
+      </LinearGradient>
+    );
+  }
 
   return (
     <LinearGradient
@@ -105,7 +124,7 @@ export default function FirebaseSignInScreen() {
             Sign in to Firebase
           </Text>
           <Text style={[styles.hint, { color: hintColor }]}>
-            Use the email and password from your Firebase Authentication user.
+            Sign in to upload or download your encrypted backup from Firestore.
           </Text>
 
           <Text style={[styles.label, { color: titleColor }]}>Email</Text>
@@ -173,6 +192,7 @@ export default function FirebaseSignInScreen() {
 
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
+  loadingWrap: { flex: 1, justifyContent: "center", alignItems: "center" },
   flex: { flex: 1 },
   scrollContent: {
     paddingHorizontal: 24,

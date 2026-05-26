@@ -2,6 +2,13 @@
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
+## Firebase & Firestore
+
+1. Copy `.env.example` to `.env` and fill in `EXPO_PUBLIC_FIREBASE_*` from the Firebase web app config.
+2. In Firebase Console: enable **Authentication** (Email/Password) and create **Firestore Database**.
+3. In Firebase Console → **Firestore** → **Rules**, replace all rules with the contents of [`firestore.rules`](firestore.rules) (remove any `match /{document=**}` test rule), then **Publish**. Or run `firebase deploy --only firestore:rules` if you use the Firebase CLI.
+4. Restart Expo after changing `.env`. Use **Sync to firebase** in Settings to sign in, then upload or download encrypted backups.
+
 ## Get started
 
 1. Install dependencies
