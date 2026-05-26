@@ -4,6 +4,7 @@ import { persistStoreToDatabase } from "@/stores/databaseStore";
 import { useDatabaseStore } from "@/stores/databaseStore";
 import { getSafePreferences } from "@/stores/safePreferencesStore";
 import { useSafePreferencesStore } from "@/stores/safePreferencesStore";
+import { BackHandler, Platform } from "react-native";
 
 /** Whether discrete mode is on (e.g. for discrete notifications). */
 export function isDiscreteMode(): boolean {
@@ -40,6 +41,22 @@ export async function triggerQuickExit(onExit: () => void): Promise<boolean> {
   await runQuickExit();
   onExit();
   return true;
+}
+
+/** Force-close the app (Android) or crash (iOS) after hiding sensitive UI. */
+export function panicExitApp(): void {
+  if (Platform.OS === "web") return;
+  if (Platform.OS === "android") BackHandler.exitApp();
+  if (Platform.OS === "ios") throw new Error("Panic: user-initiated crash");
+}
+
+/**
+ * Quick exit when enabled, then force-close the app (long-press / gyro panic).
+ * If quick exit is off, still panics without saving.
+ */
+export async function performQuickExitWithPanic(onExit: () => void): Promise<void> {
+  await triggerQuickExit(onExit);
+  panicExitApp();
 }
 
 /** Whether self-destruct is enabled (failed PIN attempts wipe data). */
