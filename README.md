@@ -9,6 +9,9 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 3. In Firebase Console → **Firestore** → **Rules**, replace all rules with the contents of [`firestore.rules`](firestore.rules) (remove any `match /{document=**}` test rule), then **Publish**. Or run `firebase deploy --only firestore:rules` if you use the Firebase CLI.
 4. Restart Expo after changing `.env`. Use **Sync to firebase** in Settings to sign in, then upload or download encrypted backups.
 
+
+test 
+
 ## Get started
 
 1. Install dependencies
