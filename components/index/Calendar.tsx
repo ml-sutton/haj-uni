@@ -66,15 +66,32 @@ function getNext7Days(): { date: Date; dateKey: string; label: string; isToday: 
   return days;
 }
 
-type CalendarProps = {
+/**
+ * Props for {@link Calendar}.
+ */
+export type CalendarProps = {
+  /**
+   * @param user - Authenticated user whose medications and scheduled doses populate the calendar.
+   */
   user: User;
 };
 
-/** Theme-safe highlight for current day: subtle, doesn't clash with gradient/cards. */
+/**
+ * Theme-safe highlight color for the current day chip; subtle on gradient and card backgrounds.
+ *
+ * @param theme - Resolved light or dark theme.
+ * @returns RGBA background color string for "today" day boxes.
+ */
 function currentDayHighlight(theme: "dark" | "light"): string {
   return theme === "dark" ? "rgba(241,156,187,0.22)" : "rgba(127,191,233,0.35)";
 }
 
+/**
+ * Seven-day dose overview for the home screen with a modal listing doses for a selected day.
+ *
+ * @param props - User medications and scheduled doses.
+ * @returns A horizontal row of day chips and a modal with dose times and taken status.
+ */
 export function Calendar({ user }: CalendarProps) {
   const { resolvedTheme } = useTheme();
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);

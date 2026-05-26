@@ -36,6 +36,15 @@ import {
 
 type RecoverStep = "phrase" | "pin" | "confirm";
 
+/**
+ * Multi-step account recovery using a 24-word mnemonic and new PIN.
+ *
+ * @remarks
+ * Expo Router file route: `/recover` (`app/recover.tsx`). Reached from login when
+ * recovery is enabled. Never persists the mnemonic on device.
+ *
+ * @returns The recovery wizard UI or a loading state while checking availability.
+ */
 export default function RecoverScreen() {
   const router = useRouter();
   const { resolvedTheme } = useTheme();
@@ -58,6 +67,7 @@ export default function RecoverScreen() {
   const setUser = useDatabaseStore((s) => s.setUser);
   const setIsAuthed = useDatabaseStore((s) => s.setIsAuthed);
 
+  // Determine whether this install supports mnemonic recovery before showing steps.
   useEffect(() => {
     let cancelled = false;
     hasRecoveryEnabled()

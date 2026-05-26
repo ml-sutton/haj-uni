@@ -3,8 +3,8 @@ import {
   secondaryTextColor,
   cardBackgroundColor,
   inputBorderColor,
+  useTheme,
 } from "@/contexts/theme";
-import { useTheme } from "@/contexts/theme";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Modal,
@@ -15,7 +15,12 @@ import {
   View,
 } from "react-native";
 
-/** Parse 24h "HH:mm" into { hour12, minute, isPM }. */
+/**
+ * Parses a 24-hour clock time string into 12-hour picker state.
+ *
+ * @param value - Time in `"HH:mm"` 24-hour format.
+ * @returns Hour (1–12), minute (0–59), and AM/PM flag; defaults to 9:00 AM on invalid input.
+ */
 function parse24h(value: string): { hour12: number; minute: number; isPM: boolean } {
   const match = value.trim().match(/^(\d{1,2}):(\d{2})$/);
   if (!match) return { hour12: 9, minute: 0, isPM: false };
@@ -28,12 +33,25 @@ function parse24h(value: string): { hour12: number; minute: number; isPM: boolea
   return { hour12, minute: minutes, isPM };
 }
 
-/** Round minute to nearest step (e.g. 5). */
+/**
+ * Rounds a minute value to the nearest step increment.
+ *
+ * @param n - Minute value (0–59).
+ * @param step - Step size in minutes (e.g. 5).
+ * @returns Minute snapped to the nearest multiple of `step`.
+ */
 function roundToStep(n: number, step: number): number {
   return Math.round(n / step) * step;
 }
 
-/** Format 12h selection to 24h "HH:mm". */
+/**
+ * Formats 12-hour picker state into a 24-hour `"HH:mm"` string.
+ *
+ * @param hour12 - Hour on a 12-hour clock (1–12).
+ * @param minute - Minute (0–59).
+ * @param isPM - Whether the selection is PM.
+ * @returns Zero-padded 24-hour time string.
+ */
 function to24h(hour12: number, minute: number, isPM: boolean): string {
   let hours = hour12;
   if (isPM && hour12 !== 12) hours += 12;
@@ -46,15 +64,34 @@ function to24h(hour12: number, minute: number, isPM: boolean): string {
 const HOURS_12 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 const MINUTE_STEPS = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
 
+/**
+ * Props for {@link TimeSelector}.
+ */
 export interface TimeSelectorProps {
+  /**
+   * @param visible - Whether the schedule-time modal is shown.
+   */
   visible: boolean;
+  /**
+   * @param onClose - Called when the user dismisses the modal without confirming (overlay, Cancel).
+   */
   onClose: () => void;
-  /** Current value in 24h "HH:mm". */
+  /**
+   * @param value - Current time in 24-hour `"HH:mm"` format used to initialize the picker.
+   */
   value: string;
-  /** Called with 24h "HH:mm" when user confirms. */
+  /**
+   * @param onSelect - Called with the chosen 24-hour `"HH:mm"` string when the user taps Done.
+   */
   onSelect: (value: string) => void;
 }
 
+/**
+ * Modal time picker for dose scheduling: 12-hour hour chips, 5-minute steps, and AM/PM toggle.
+ *
+ * @param props - Visibility, current value, and select/close handlers.
+ * @returns A centered modal with horizontal chip pickers and a Done action that commits the time.
+ */
 export function TimeSelector({ visible, onClose, value, onSelect }: TimeSelectorProps) {
   const { resolvedTheme } = useTheme();
   const titleColor = primaryTextColor(resolvedTheme);

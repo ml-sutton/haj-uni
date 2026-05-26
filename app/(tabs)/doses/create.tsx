@@ -50,6 +50,12 @@ const INGESTION_METHODS: IngestionMethod[] = [
 ];
 const UNITS: Unit[] = ["mg", "mL", "mcg", "g", "IU", "patch", "Other"];
 
+/**
+ * Parses an `HH:mm` schedule string into 24-hour components.
+ *
+ * @param value - Time string such as `"09:00"`.
+ * @returns Hours and minutes, or `null` if invalid.
+ */
 function parseTimeOfDay(value: string): { hours: number; minutes: number } | null {
   const trimmed = value.trim();
   const match = trimmed.match(/^(\d{1,2}):(\d{2})$/);
@@ -60,18 +66,38 @@ function parseTimeOfDay(value: string): { hours: number; minutes: number } | nul
   return { hours, minutes };
 }
 
+/**
+ * Returns today’s date at the given local time (seconds zeroed).
+ *
+ * @param hours - Hour 0–23.
+ * @param minutes - Minute 0–59.
+ * @returns A `Date` on the current calendar day.
+ */
 function todayAt(hours: number, minutes: number): Date {
   const d = new Date();
   d.setHours(hours, minutes, 0, 0);
   return d;
 }
 
+/**
+ * Adds calendar days to a date without mutating the input.
+ *
+ * @param date - Starting date.
+ * @param days - Number of days to add (may be negative).
+ * @returns A new `Date` instance.
+ */
 function addDays(date: Date, days: number): Date {
   const out = new Date(date);
   out.setDate(out.getDate() + days);
   return out;
 }
 
+/**
+ * Converts a 24-hour `HH:mm` string to 12-hour display with AM/PM.
+ *
+ * @param value - 24-hour time string.
+ * @returns Formatted 12-hour label, or the original value if unparsable.
+ */
 function formatTime24To12(value: string): string {
   const t = parseTimeOfDay(value);
   if (!t) return value;
@@ -81,10 +107,22 @@ function formatTime24To12(value: string): string {
   return `${hour12}:${String(minutes).padStart(2, "0")} ${ampm}`;
 }
 
+/**
+ * Serializes a {@link TimeOfDay} model to `HH:mm` for the form UI.
+ *
+ * @param t - Structured time-of-day from dosage model.
+ * @returns Zero-padded 24-hour time string.
+ */
 function timeOfDayToHHmm(t: TimeOfDay): string {
   return `${String(t.hour).padStart(2, "0")}:${String(t.minute).padStart(2, "0")}`;
 }
 
+/**
+ * Converts form time strings into validated {@link TimeOfDay} entries.
+ *
+ * @param times - Array of `HH:mm` strings from the schedule editor.
+ * @returns Parsed times; invalid entries are omitted.
+ */
 function parseScheduleTimesToModel(times: string[]): TimeOfDay[] {
   const out: TimeOfDay[] = [];
   for (const s of times) {
@@ -94,6 +132,15 @@ function parseScheduleTimesToModel(times: string[]): TimeOfDay[] {
   return out;
 }
 
+/**
+ * Materializes {@link Dose} records for each time-of-day slot and repeat count.
+ *
+ * @param timesOfDay - Daily schedule slots.
+ * @param frequencyDays - Days between repeated occurrences per slot.
+ * @param occurrencesPerSlot - How many future doses to generate per slot (ignored when `oneOff`).
+ * @param oneOff - When true, only one dose per slot is created.
+ * @returns New dose entities with generated ids and scheduled times.
+ */
 function buildDosesForTimesOfDay(
   timesOfDay: TimeOfDay[],
   frequencyDays: number,
@@ -123,6 +170,16 @@ const CREATE_NEW_MEDICATION = "__new_medication__";
 
 const DEFAULT_TIMES = ["09:00"];
 
+/**
+ * Create or edit medication dosage schedules (multi-time, recurring doses).
+ *
+ * @remarks
+ * Expo Router file route: `/(tabs)/doses/create` (`app/(tabs)/doses/create.tsx`).
+ * Long-press Save creates a one-off dose per time slot. Reschedules notifications
+ * on save and cancels them when deleting a schedule.
+ *
+ * @returns Schedule builder UI.
+ */
 export default function CreateDoseScreen() {
   const router = useRouter();
   const { resolvedTheme } = useTheme();

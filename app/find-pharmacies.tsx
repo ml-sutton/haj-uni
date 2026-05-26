@@ -35,6 +35,13 @@ const RADIUS_KM = 2;
 const MAP_DELTA = 0.022;
 const MAP_EDGE_PADDING = { top: 120, right: 48, bottom: 200, left: 48 };
 
+/**
+ * Builds a map region centered on the given coordinates.
+ *
+ * @param latitude - Center latitude in degrees.
+ * @param longitude - Center longitude in degrees.
+ * @returns A `react-native-maps` region with fixed deltas.
+ */
 function regionFor(latitude: number, longitude: number): Region {
   return {
     latitude,
@@ -44,6 +51,16 @@ function regionFor(latitude: number, longitude: number): Region {
   };
 }
 
+/**
+ * Map screen showing nearby pharmacies and walking route for a depleted medication.
+ *
+ * @remarks
+ * Expo Router file route: `/find-pharmacies` (`app/find-pharmacies.tsx`). Query
+ * params: `medicationId`, `medicationName`. Native-only map; web shows a fallback
+ * message. Exits automatically if supply is no longer depleted.
+ *
+ * @returns The pharmacy locator map or web fallback UI.
+ */
 export default function FindPharmaciesScreen() {
   const params = useLocalSearchParams<{
     medicationId?: string | string[];
@@ -91,6 +108,7 @@ export default function FindPharmaciesScreen() {
     return findClosestPharmacy(coords, pharmacies);
   }, [coords, pharmacies]);
 
+  /** Fetches nearby pharmacies for a location; dedupes by rounded lat/lng unless `force`. */
   const loadPharmacies = useCallback(
     async (latitude: number, longitude: number, force = false) => {
       const key = `${latitude.toFixed(3)},${longitude.toFixed(3)}`;
@@ -114,6 +132,7 @@ export default function FindPharmaciesScreen() {
     []
   );
 
+  /** Adjusts map camera to include the walking route with edge padding. */
   const fitMapToRoute = useCallback(
     (userCoords: { latitude: number; longitude: number }, path: PharmacyRoute) => {
       const points = path.coordinates.length > 0 ? path.coordinates : [userCoords];
@@ -125,11 +144,13 @@ export default function FindPharmaciesScreen() {
     []
   );
 
+  // Fetch pharmacy POIs when user location becomes available.
   useEffect(() => {
     if (!coords) return;
     void loadPharmacies(coords.latitude, coords.longitude);
   }, [coords, loadPharmacies]);
 
+  // Load walking route to the closest pharmacy; fall back to straight-line estimate.
   useEffect(() => {
     if (!coords || !closest) {
       setRoute(null);
@@ -174,6 +195,7 @@ export default function FindPharmaciesScreen() {
     };
   }, [coords, closest, fitMapToRoute]);
 
+  // Close map if medication supply was replenished or params are invalid.
   useEffect(() => {
     if (!medicationId || !user) return;
     if (!medication || !isMedicationSupplyDepleted(medication)) {

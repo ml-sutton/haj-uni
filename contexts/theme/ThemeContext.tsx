@@ -22,12 +22,27 @@ const defaultState: ThemeContextValue = {
   toggleHighContrast: () => {},
 };
 
+/**
+ * Props for {@link ThemeProvider}.
+ */
 export interface ThemeProviderProps {
+  /**
+   * @param children - App tree that receives theme context.
+   */
   children: ReactNode;
-  /** Initial theme mode. */
+  /**
+   * @param initialTheme - Theme mode before user preferences load (defaults to `"system"`).
+   */
   initialTheme?: ThemeMode;
 }
 
+/**
+ * Supplies theme mode, resolved light/dark appearance, high-contrast flag, and update actions to descendants.
+ * Syncs live theme snapshot for style helpers on each render.
+ *
+ * @param props - Provider children and optional initial theme.
+ * @returns React context provider wrapping `children`.
+ */
 export function ThemeProvider({
   children,
   initialTheme = "system",
@@ -118,7 +133,10 @@ export function ThemeProvider({
 }
 
 /**
- * Returns the theme context value. Throws if used outside ThemeProvider.
+ * Reads theme state and actions from {@link ThemeProvider}.
+ *
+ * @returns Current {@link ThemeContextValue} (mode, resolved theme, high contrast, setters, toggles).
+ * @throws If called outside a `ThemeProvider`.
  */
 export function useTheme(): ThemeContextValue {
   const ctx = useContext(ThemeContext);
@@ -129,8 +147,9 @@ export function useTheme(): ThemeContextValue {
 }
 
 /**
- * Optional theme hook. Returns default state when outside ThemeProvider.
- * Use when you need theme in a component that might render without the provider.
+ * Reads theme context when a provider may be absent (e.g. splash or storybook).
+ *
+ * @returns Live context value inside {@link ThemeProvider}, otherwise inert default state with no-op setters.
  */
 export function useThemeOptional(): ThemeContextValue {
   const ctx = useContext(ThemeContext);

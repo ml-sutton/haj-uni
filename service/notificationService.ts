@@ -10,7 +10,12 @@ import { Platform } from "react-native";
 const DOSE_CHANNEL_ID = "dose-reminders";
 const DOSE_SILENT_CHANNEL_ID = "dose-reminders-silent";
 
-/** Ensure notification permissions and Android channel are set up. */
+/**
+ * Requests notification permissions and configures Android notification channels.
+ *
+ * @returns `true` if notifications are granted; `false` if denied or unavailable.
+ * @remarks Creates separate channels for normal and silent dose reminders on Android.
+ */
 export async function ensureNotificationSetup(): Promise<boolean> {
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync(DOSE_CHANNEL_ID, {
@@ -33,20 +38,25 @@ export async function ensureNotificationSetup(): Promise<boolean> {
   return status === "granted";
 }
 
+/**
+ * Options for {@link scheduleDoseReminders} controlling copy and delivery behavior.
+ */
 export interface ScheduleDoseRemindersOptions {
   /** When true, uses discrete notification copy (e.g. generic "shark fact" style). */
   isDiscrete?: boolean;
   /** When true, deliver reminders silently (no notification sound). */
   isSilent?: boolean;
-  /** Force scheduling even when notificationsEnabled setting is false. */
+  /** Force scheduling even when `notificationsEnabled` in safe preferences is false. */
   force?: boolean;
 }
 
 /**
- * Schedule two local notifications per dose:
- * - One 5 minutes before the scheduled dose time
- * - One at the scheduled dose time
- * Title and body come from notificationMessages (respects isDiscrete).
+ * Schedules two local notifications per future dose: five minutes before and at dose time.
+ *
+ * @param doses - Dose instances with `id` and `scheduledTime`; past doses are skipped.
+ * @param options - Discrete copy, silent channel, or force scheduling.
+ * @returns Resolves when scheduling completes; no-ops if notifications disabled (unless `force`), permission denied, or list empty.
+ * @remarks Notification identifiers are `{doseId}-5min` and `{doseId}-ontime` for later cancellation.
  */
 export async function scheduleDoseReminders(
   doses: Dose[],
@@ -108,7 +118,11 @@ export async function scheduleDoseReminders(
   }
 }
 
-/** Cancel all scheduled dose reminders created by this service. */
+/**
+ * Cancels all dose reminder notifications scheduled by this service.
+ *
+ * @returns Resolves after identifiers ending in `-5min` or `-ontime` are cancelled.
+ */
 export async function cancelDoseReminders(): Promise<void> {
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
   const ids = scheduled
@@ -119,7 +133,13 @@ export async function cancelDoseReminders(): Promise<void> {
   }
 }
 
-/** Cancel reminders for specific dose instance ids (e.g. after deleting or replacing a schedule). */
+/**
+ * Cancels reminders for specific dose instance ids.
+ *
+ * @param doseIds - Dose `id` values used when scheduling (`{id}-5min`, `{id}-ontime`).
+ * @returns Resolves when each pair of identifiers is cancelled.
+ * @remarks Call after deleting or rescheduling doses so stale alarms do not fire.
+ */
 export async function cancelDoseRemindersForDoseIds(doseIds: string[]): Promise<void> {
   for (const id of doseIds) {
     await Notifications.cancelScheduledNotificationAsync(`${id}-5min`);

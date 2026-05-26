@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+/** Keys for built-in theme presets shown on the appearance screen. */
 type ThemePresetKey =
   | "light"
   | "dark"
@@ -28,6 +29,16 @@ const PRESETS: { key: ThemePresetKey; label: string }[] = [
   { key: "colonthree", label: "colonthree" },
 ];
 
+/**
+ * Appearance settings: theme presets and accessibility-related display options.
+ *
+ * @remarks
+ * Expo Router file route: `/settings/appearance`
+ * (`app/(tabs)/settings/appearance.tsx`). Persists choice via
+ * {@link useSafePreferencesStore} and {@link useTheme}.
+ *
+ * @returns Theme preset picker screen.
+ */
 export default function AppearanceSettings() {
   const { resolvedTheme, highContrast, setTheme } = useTheme();
   const isDark = resolvedTheme === "dark";

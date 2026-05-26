@@ -1,3 +1,10 @@
+/**
+ * Preset pronoun options offered during registration and profile editing.
+ *
+ * @remarks
+ * Includes common neopronoun sets and `"other"` for custom entry elsewhere in the UI.
+ * Order is presentation-only; not locale-sorted.
+ */
 const Pronouns: readonly string[]= [
   "he/him",
   "she/her",

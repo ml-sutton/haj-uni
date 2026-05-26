@@ -9,16 +9,40 @@ import {
   View,
 } from "react-native";
 
+/**
+ * Props for {@link PinStep}.
+ */
 export interface PinStepProps {
+  /**
+   * @param value - Current PIN digits (numeric string, up to {@link PIN_LENGTH} characters).
+   */
   value: string;
+  /**
+   * @param onChange - Called with sanitized digits-only PIN text as the user types.
+   */
   onChange: (pin: string) => void;
+  /**
+   * @param error - Validation message shown below the dot row when present.
+   */
   error?: string;
+  /**
+   * @param label - Heading above the PIN entry (defaults to create-PIN copy).
+   */
   label?: string;
+  /**
+   * @param hint - Subtitle explaining PIN usage (defaults to sign-in/unlock copy).
+   */
   hint?: string;
 }
 
 const DIGITS = Array.from({ length: PIN_LENGTH }, (_, i) => i);
 
+/**
+ * Six-digit PIN entry with masked dot display and hidden numeric keyboard input.
+ *
+ * @param props - PIN value, handlers, and optional label, hint, and error text.
+ * @returns A themed PIN form: label, hint, invisible `TextInput`, tappable dot row, and error line.
+ */
 export function PinStep({
   value,
   onChange,

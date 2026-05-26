@@ -10,11 +10,26 @@ import {
   View,
 } from "react-native";
 
+/**
+ * Props for {@link PronounsStep}.
+ */
 export interface PronounsStepProps {
+  /**
+   * @param value - Currently selected pronoun labels (multi-select).
+   */
   value: string[];
+  /**
+   * @param onChange - Called with the updated pronoun list when options are toggled in the modal.
+   */
   onChange: (pronouns: string[]) => void;
 }
 
+/**
+ * Registration step for optional multi-select pronouns from the app catalog.
+ *
+ * @param props - Selected pronouns and change handler.
+ * @returns A labeled trigger and bottom-sheet modal checklist of {@link Pronouns} options.
+ */
 export function PronounsStep({
   value,
   onChange,

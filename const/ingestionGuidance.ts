@@ -1,6 +1,14 @@
 import type { IngestionMethod } from "@/models/dosage";
 
-/** General reminders only — not a substitute for your prescriber or medication leaflet. */
+/**
+ * Returns general ingestion reminders for a given administration method.
+ *
+ * @param method - {@link IngestionMethod} from the user's medication record.
+ * @returns Object with `headline` (short title) and `steps` (ordered reminders; not medical advice).
+ *
+ * @remarks
+ * Content is educational only — not medical advice. Users should follow their clinician and pharmacy label.
+ */
 export function getIngestionGuidance(method: IngestionMethod): {
   headline: string;
   steps: string[];

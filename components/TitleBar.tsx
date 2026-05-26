@@ -33,11 +33,25 @@ function getTitleFromPathname(pathname: string): string {
   return `HAJ | ${label}`;
 }
 
+/**
+ * Props for {@link TitleBar}.
+ */
 export interface TitleBarProps {
-  /** Override title (e.g. "HAJ | Registration"). When not set, derived from pathname. */
+  /**
+   * @param title - Override for the bar label (e.g. `"HAJ | Registration"`). When omitted,
+   * the title is derived from the current route pathname.
+   */
   title?: string;
 }
 
+/**
+ * App-wide gradient header with logo, route title, and privacy gestures.
+ * Tap the logo inside tabs to return home; long-press triggers quick exit with panic routing.
+ *
+ * @param props - Title bar configuration.
+ * @param props.title - Optional title override; see {@link TitleBarProps.title}.
+ * @returns A safe-area-aware linear gradient bar with pressable logo and title text.
+ */
 export function TitleBar({ title: titleOverride }: TitleBarProps = {}) {
   const { theme, resolvedTheme, highContrast } = useTheme();
   const insets = useSafeAreaInsets();

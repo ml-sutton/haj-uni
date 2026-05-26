@@ -25,6 +25,15 @@ import {
   View,
 } from "react-native";
 
+/**
+ * Firebase email/password sign-in for encrypted cloud backup access.
+ *
+ * @remarks
+ * Expo Router file route: `/firebase-sign-in` (`app/firebase-sign-in.tsx`).
+ * Redirects to {@link FirebaseLoggedInScreen} when a session already exists.
+ *
+ * @returns The Firebase sign-in form or a loading state.
+ */
 export default function FirebaseSignInScreen() {
   const router = useRouter();
   const { user: firebaseUser, loading: authLoading } = useFirebaseUser();
@@ -55,6 +64,7 @@ export default function FirebaseSignInScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Skip form when Firebase auth listener reports an existing user.
   useEffect(() => {
     if (authLoading || !firebaseUser) return;
     router.replace("/firebase-logged-in" as any);

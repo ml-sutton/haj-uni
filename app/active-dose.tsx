@@ -30,6 +30,16 @@ import {
 
 const WINDOW_CHECK_MS = 15_000;
 
+/**
+ * Full-screen reminder for a dose currently in its active time window.
+ *
+ * @remarks
+ * Expo Router file route: `/active-dose` (`app/active-dose.tsx`). Query param:
+ * `doseId`. Shows ingestion guidance and lets the user mark the dose taken;
+ * auto-redirects when the window closes or the dose is already taken.
+ *
+ * @returns The active-dose reminder UI or a loading placeholder.
+ */
 export default function ActiveDoseScreen() {
   const params = useLocalSearchParams<{ doseId?: string | string[] }>();
   const doseId =
@@ -56,6 +66,7 @@ export default function ActiveDoseScreen() {
     router.replace("/(tabs)");
   }, [router]);
 
+  // Hydrate in-memory user from encrypted storage when authed but store is empty.
   useEffect(() => {
     if (!encryptionKey || user !== null) return;
     let cancelled = false;
@@ -81,6 +92,7 @@ export default function ActiveDoseScreen() {
     return isUntakenDoseInActiveWindow(found.dose);
   }, [found]);
 
+  // Poll while dose remains in-window; leave screen when taken or window ends.
   useEffect(() => {
     if (!found || !stillActive) return;
     const t = setInterval(() => {
@@ -97,6 +109,7 @@ export default function ActiveDoseScreen() {
     return () => clearInterval(t);
   }, [found, stillActive, doseId, goToTabs]);
 
+  // Initial guard: redirect if unauthenticated, missing doseId, or dose not active.
   useEffect(() => {
     if (loading) return;
     if (!encryptionKey) {

@@ -9,20 +9,29 @@ import { useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
 import { AppState, Platform, type AppStateStatus } from "react-native";
 
-/** Sample rate for jerk detection (~20 Hz). */
+/** Sample interval for jerk detection (~20 Hz). */
 const UPDATE_INTERVAL_MS = 50;
 /** Minimum angular speed (rad/s) to ignore sensor noise. */
 const MIN_ANGULAR_SPEED_RAD_S = 5;
 /** Sudden change in angular speed (rad/s²) indicating a sharp jerk. */
 const ANGULAR_JERK_THRESHOLD_RAD_S2 = 55;
-/** Consecutive jerking samples required before triggering. */
+/** Consecutive jerking samples required before triggering quick exit. */
 const JERK_STREAK_REQUIRED = 2;
+/** Cooldown after a trigger to avoid repeated panic exits. */
 const COOLDOWN_MS = 4_000;
 
 function magnitude({ x, y, z }: GyroscopeMeasurement): number {
   return Math.sqrt(x * x + y * y + z * z);
 }
 
+/**
+ * Detects sharp rotational jerks from consecutive gyroscope samples.
+ *
+ * @param current - Latest reading.
+ * @param previous - Prior sample, or null on first frame.
+ * @param dtSec - Elapsed time between samples in seconds.
+ * @returns `true` when angular jerk exceeds threshold and speed is above noise floor.
+ */
 function isJerkingMotion(
   current: GyroscopeMeasurement,
   previous: GyroscopeMeasurement | null,
@@ -37,8 +46,10 @@ function isJerkingMotion(
 }
 
 /**
- * Listens to the gyroscope while the user is authenticated and quick exit is on.
- * A sharp jerk (sudden spike in angular velocity) triggers quick exit.
+ * Listens for a sharp phone jerk while authenticated and quick exit is enabled.
+ *
+ * @returns Nothing; triggers {@link performQuickExitWithPanic} and navigates to login on match.
+ * @remarks **Privacy:** Panic path saves state (when quick exit is on) then force-closes the app. No-op on web or when logged out. Only runs while app state is `active`.
  */
 export function useQuickExitGyroscope(): void {
   const router = useRouter();

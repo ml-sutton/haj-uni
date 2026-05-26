@@ -9,6 +9,18 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+/**
+ * Navigable settings row with icon and chevron.
+ *
+ * @param props.href - Expo Router path to push on press.
+ * @param props.label - Visible row title.
+ * @param props.icon - Ionicons glyph name for the leading icon.
+ * @param props.titleColor - Primary text color from theme.
+ * @param props.secondaryColor - Muted icon/chevron color.
+ * @param props.backgroundColor - Row background.
+ * @param props.borderColor - Row border (high-contrast themes).
+ * @returns A pressable settings link row.
+ */
 function SettingsLink({
   href,
   label,
@@ -45,6 +57,13 @@ function SettingsLink({
   );
 }
 
+/**
+ * Uppercase section heading within the settings list.
+ *
+ * @param props.title - Section label text.
+ * @param props.color - Text color from theme.
+ * @returns A styled section header view.
+ */
 function SectionHeader({
   title,
   color,
@@ -59,6 +78,14 @@ function SectionHeader({
   );
 }
 
+/**
+ * Settings tab hub linking to sync, appearance, privacy, dosage, and about screens.
+ *
+ * @remarks
+ * Expo Router file route: `/(tabs)/settings` (`app/(tabs)/settings/index.tsx`).
+ *
+ * @returns The settings menu screen.
+ */
 export default function SettingsIndex() {
   const { resolvedTheme, highContrast } = useTheme();
   const titleColor = primaryTextColor(resolvedTheme);

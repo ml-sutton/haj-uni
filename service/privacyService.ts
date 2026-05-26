@@ -6,19 +6,29 @@ import { getSafePreferences } from "@/stores/safePreferencesStore";
 import { useSafePreferencesStore } from "@/stores/safePreferencesStore";
 import { BackHandler, Platform } from "react-native";
 
-/** Whether discrete mode is on (e.g. for discrete notifications). */
+/**
+ * Whether discrete mode is enabled (e.g. generic notification copy instead of medication-specific text).
+ *
+ * @returns Current value from the safe preferences store.
+ */
 export function isDiscreteMode(): boolean {
   return getSafePreferences().discreteMode;
 }
 
-/** Whether quick exit is enabled (caller may hide app / show cover screen). */
+/**
+ * Whether quick exit is enabled (gesture/header can hide sensitive UI and return to login).
+ *
+ * @returns Current value from the safe preferences store.
+ */
 export function isQuickExitEnabled(): boolean {
   return getSafePreferences().quickExitEnabled;
 }
 
 /**
- * Saves both stores to DB (safe prefs + encrypted user), then clears both
- * stores (clearAuth + resetToDefaults). Call before navigating to login.
+ * Persists in-memory state, then clears session and preference stores without destroying local DB files.
+ *
+ * @returns Resolves after safe prefs and encrypted user are flushed and stores are reset.
+ * @remarks **Privacy:** Writes current data to disk before clearing memory—use when the user wants to hide the app quickly, not wipe data. Caller should navigate to login after this resolves.
  */
 export async function runQuickExit(): Promise<void> {
   const prefs = getSafePreferences();
@@ -30,11 +40,10 @@ export async function runQuickExit(): Promise<void> {
 }
 
 /**
- * If quick exit is enabled, saves both stores to DB, clears both stores,
- * then runs the given callback (e.g. navigate to login). Call from a gesture
- * or header so the user can quickly hide sensitive content.
- * @param onExit - e.g. () => router.replace("/login")
- * @returns true if quick exit was enabled and ran, false otherwise.
+ * Runs quick exit when enabled, then invokes a navigation callback.
+ *
+ * @param onExit - Called after state is saved and cleared (e.g. `() => router.replace("/login")`).
+ * @returns `true` if quick exit ran; `false` if the feature is disabled.
  */
 export async function triggerQuickExit(onExit: () => void): Promise<boolean> {
   if (!isQuickExitEnabled()) return false;
@@ -43,7 +52,11 @@ export async function triggerQuickExit(onExit: () => void): Promise<boolean> {
   return true;
 }
 
-/** Force-close the app (Android) or crash (iOS) after hiding sensitive UI. */
+/**
+ * Force-closes the app after sensitive UI should already be hidden.
+ *
+ * @remarks **Privacy:** On Android calls `BackHandler.exitApp()`; on iOS throws to crash the process (Apple has no public exit API). No-op on web. Use only for explicit panic flows (e.g. gyro quick exit).
+ */
 export function panicExitApp(): void {
   if (Platform.OS === "web") return;
   if (Platform.OS === "android") BackHandler.exitApp();
@@ -51,38 +64,59 @@ export function panicExitApp(): void {
 }
 
 /**
- * Quick exit when enabled, then force-close the app (long-press / gyro panic).
- * If quick exit is off, still panics without saving.
+ * Attempts quick exit (when enabled), navigates away, then force-closes the app.
+ *
+ * @param onExit - Navigation callback (e.g. replace login route).
+ * @returns Resolves after quick exit attempt; app may terminate immediately after via {@link panicExitApp}.
+ * @remarks If quick exit is disabled, still calls {@link panicExitApp} without saving—intentional panic behavior.
  */
 export async function performQuickExitWithPanic(onExit: () => void): Promise<void> {
   await triggerQuickExit(onExit);
   panicExitApp();
 }
 
-/** Whether self-destruct is enabled (failed PIN attempts wipe data). */
+/**
+ * Whether self-destruct on repeated failed PINs is enabled in preferences.
+ *
+ * @returns Current value from the safe preferences store.
+ */
 export function isSelfDestructEnabled(): boolean {
   return getSafePreferences().selfDestructEnabled;
 }
 
-/** Whether silent mode is on. */
+/**
+ * Whether silent mode is on (notifications without sound).
+ *
+ * @returns Current value from the safe preferences store.
+ */
 export function isSilentMode(): boolean {
   return getSafePreferences().silentMode;
 }
 
-/** Whether notifications are enabled. */
+/**
+ * Whether dose reminder notifications are allowed.
+ *
+ * @returns Current value from the safe preferences store.
+ */
 export function areNotificationsEnabled(): boolean {
   return getSafePreferences().notificationsEnabled;
 }
 
-/** Whether biometric login is enabled. */
+/**
+ * Whether biometric unlock is enabled in user preferences.
+ *
+ * @returns Current value from the safe preferences store.
+ * @remarks Reflects preference only; device capability is checked separately in {@link isBiometricUnlockAvailable}.
+ */
 export function isBiometricEnabled(): boolean {
   return getSafePreferences().biometricEnabled;
 }
 
 /**
- * Permanently wipe all app data (encrypted user, salt, safe prefs) and reset
- * the safe preferences store. Caller must clear auth state and navigate to
- * get started (e.g. clearAuth(); router.replace("/getStarted")).
+ * Permanently wipes all local app data and resets preference defaults in memory.
+ *
+ * @returns Resolves after encrypted DB, salts, wrapped keys, and auth policy are cleared.
+ * @remarks **Security:** Irreversible. Caller must call `clearAuth()` and navigate to onboarding (e.g. `/getStarted`). Does not sign out Firebase—that is separate.
  */
 export async function runSelfDestruct(): Promise<void> {
   await clearAllData();

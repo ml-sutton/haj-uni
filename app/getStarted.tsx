@@ -9,6 +9,15 @@ import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
+/**
+ * First-run welcome screen for users without local encrypted data.
+ *
+ * @remarks
+ * Expo Router file route: `/getStarted` (`app/getStarted.tsx`). Shown when
+ * {@link hasDatabaseObject} is false; navigates to registration on "Dive in".
+ *
+ * @returns The onboarding welcome UI.
+ */
 export default function GetStarted() {
   const router = useRouter();
   const { resolvedTheme } = useTheme();

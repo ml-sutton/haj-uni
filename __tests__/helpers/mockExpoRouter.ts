@@ -1,3 +1,8 @@
+/**
+ * Shared jest.fn() router used by the `expo-router` module mock in this file.
+ *
+ * @remarks Import in tests to assert `push`, `replace`, or `back` calls.
+ */
 export const mockExpoRouter = {
   push: jest.fn(),
   replace: jest.fn(),

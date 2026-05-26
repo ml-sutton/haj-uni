@@ -8,7 +8,7 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
-
+build/
 # Native
 .kotlin/
 *.orig.*
@@ -17,7 +17,7 @@ expo-env.d.ts
 *.p12
 *.key
 *.mobileprovision
-
+docs/
 # Metro
 .metro-health-check*
 
@@ -36,6 +36,9 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# generated API docs (wiki output is pushed to GitHub Wiki, not committed)
+build/wiki-docs/
 
 app-example
 

@@ -16,12 +16,22 @@ import {
   Alert,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { Share } from "react-native";
 
+/**
+ * Danger zone: encrypted export and irreversible self-destruct with confirmations.
+ *
+ * @remarks
+ * Expo Router file route: `/settings/dangerzone`
+ * (`app/(tabs)/settings/dangerzone.tsx`). Self-destruct requires three alert steps
+ * before calling {@link runSelfDestruct}.
+ *
+ * @returns Backup export and self-destruct controls.
+ */
 export default function DangerZoneSettings() {
   const { resolvedTheme, highContrast } = useTheme();
   const isDark = resolvedTheme === "dark";

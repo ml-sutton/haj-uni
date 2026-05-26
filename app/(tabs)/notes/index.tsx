@@ -21,6 +21,15 @@ import {
   View,
 } from "react-native";
 
+/**
+ * Notes tab: searchable list of encrypted notes with create navigation.
+ *
+ * @remarks
+ * Expo Router file route: `/(tabs)/notes` (`app/(tabs)/notes/index.tsx`).
+ * `[noteId]` of `new` opens the editor for a new note.
+ *
+ * @returns Notepad list UI or auth/loading placeholders.
+ */
 export default function NotepadScreen() {
   const router = useRouter();
   const { resolvedTheme } = useTheme();

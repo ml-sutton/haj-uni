@@ -7,6 +7,17 @@ import { Redirect, type Href } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 
+/**
+ * Bootstrap route that resolves the user's next destination.
+ *
+ * @remarks
+ * Expo Router file route: `/` (`app/index.tsx`). Checks whether encrypted data
+ * exists, whether the user is authenticated, and whether an active untaken dose
+ * is in its reminder window; redirects to onboarding, login, `active-dose`, or
+ * the main tabs accordingly.
+ *
+ * @returns A loading spinner or a {@link Redirect} to the appropriate route.
+ */
 export default function Index() {
   const { theme, resolvedTheme, highContrast } = useTheme();
   const isAuthed = useDatabaseStore((s) => s.isAuthed);
@@ -15,6 +26,7 @@ export default function Index() {
   const gradientColors = getGradientColors(resolvedTheme, { themeMode: theme, highContrast });
   const spinnerColor = primaryTextColor(resolvedTheme, { themeMode: theme, highContrast });
 
+  // Probe local storage once to decide onboarding vs returning user flow.
   useEffect(() => {
     let cancelled = false;
     // AsyncStorage.clear().then(() => {});

@@ -23,6 +23,15 @@ import {
   View,
 } from "react-native";
 
+/**
+ * Doses tab listing all scheduled doses with links to create and detail views.
+ *
+ * @remarks
+ * Expo Router file route: `/(tabs)/doses` (`app/(tabs)/doses/index.tsx`).
+ * Surfaces {@link FindPharmaciesButton} for medications with depleted supply.
+ *
+ * @returns The doses list screen or auth/loading placeholders.
+ */
 export default function DosesScreen() {
   const router = useRouter();
   const { resolvedTheme } = useTheme();

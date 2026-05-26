@@ -11,10 +11,22 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 const RECENT_COUNT = 5;
 
-type NotepadNavProps = {
+/**
+ * Props for {@link NotepadNav}.
+ */
+export type NotepadNavProps = {
+  /**
+   * @param user - Authenticated user whose notes are listed (most recent first).
+   */
   user: User;
 };
 
+/**
+ * Home-screen notepad section showing recent notes with navigation to detail and full list.
+ *
+ * @param props - User record containing notes.
+ * @returns A section title, up to five note cards, optional "View more" link, or empty state copy.
+ */
 export function NotepadNav({ user }: NotepadNavProps) {
   const router = useRouter();
   const { resolvedTheme } = useTheme();
@@ -53,12 +65,14 @@ export function NotepadNav({ user }: NotepadNavProps) {
           </Pressable>
         ))
       )}
-      <Pressable
-        style={[styles.viewMoreButton, { backgroundColor: cardBg }]}
-        onPress={() => router.push("/(tabs)/notes")}
-      >
-        <Text style={[styles.viewMoreText, { color: titleColor }]}>View more</Text>
-      </Pressable>
+      {hasMore ? (
+        <Pressable
+          style={[styles.viewMoreButton, { backgroundColor: cardBg }]}
+          onPress={() => router.push("/(tabs)/notes")}
+        >
+          <Text style={[styles.viewMoreText, { color: titleColor }]}>View more</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
