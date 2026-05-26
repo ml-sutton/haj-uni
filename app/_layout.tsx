@@ -68,6 +68,10 @@ function ThemedStack() {
           name="active-dose"
           options={{ headerShown: false, gestureEnabled: false }}
         />
+        <Stack.Screen
+          name="find-pharmacies"
+          options={{ headerShown: false, title: "Nearby pharmacies" }}
+        />
       </Stack>
     </>
   );

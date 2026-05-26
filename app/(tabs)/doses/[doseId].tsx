@@ -11,6 +11,12 @@ import type { IngestionMethod, MedicationType, Unit } from "@/models/dosage";
 import { persistStoreToDatabase } from "@/stores/databaseStore";
 import { useDatabaseStore } from "@/stores/databaseStore";
 import { findDoseById } from "@/utils/doseQueries";
+import {
+  isMedicationSupplyDepleted,
+  medicationsAfterDoseTaken,
+  medicationsAfterDoseUntaken,
+} from "@/utils/medicationSupply";
+import { FindPharmaciesButton } from "@/components/doses/FindPharmaciesButton";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
@@ -88,18 +94,12 @@ export default function DoseDetailScreen() {
   const markAsTaken = useCallback(() => {
     if (!user || !doseId || !found) return;
     setMarkingTaken(true);
-    const updatedMedications = user.medications.map((m) => ({
-      ...m,
-      dosages: m.dosages.map((d) => {
-        if (d.id !== found.dosage.id) return d;
-        return {
-          ...d,
-          doses: d.doses.map((dose) =>
-            dose.id === doseId ? { ...dose, takenTime: new Date() } : dose
-          ),
-        };
-      }),
-    }));
+    const updatedMedications = medicationsAfterDoseTaken(
+      user.medications,
+      found.medication.id,
+      found.dosage.id,
+      doseId
+    );
     setUser({ ...user, medications: updatedMedications });
     setMarkingTaken(false);
   }, [user, setUser, doseId, found]);
@@ -107,16 +107,12 @@ export default function DoseDetailScreen() {
   const undoTaken = useCallback(() => {
     if (!user || !doseId || !found) return;
     setMarkingTaken(true);
-    const updatedMedications = user.medications.map((m) => ({
-      ...m,
-      dosages: m.dosages.map((d) => {
-        if (d.id !== found.dosage.id) return d;
-        return {
-          ...d,
-          doses: d.doses.map((dose) => (dose.id === doseId ? { ...dose, takenTime: null } : dose)),
-        };
-      }),
-    }));
+    const updatedMedications = medicationsAfterDoseUntaken(
+      user.medications,
+      found.medication.id,
+      found.dosage.id,
+      doseId
+    );
     setUser({ ...user, medications: updatedMedications });
     setMarkingTaken(false);
   }, [user, setUser, doseId, found]);
@@ -246,6 +242,13 @@ export default function DoseDetailScreen() {
           </Pressable>
           <Text style={[styles.title, { color: titleColor }]}>Dose details</Text>
         </View>
+
+        {isMedicationSupplyDepleted(medication) ? (
+          <FindPharmaciesButton
+            medicationId={medication.id}
+            medicationName={medication.name}
+          />
+        ) : null}
 
         <View style={[styles.section, { backgroundColor: cardBg }]}>
           <Text style={[styles.sectionTitle, { color: titleColor }]}>This dose</Text>
