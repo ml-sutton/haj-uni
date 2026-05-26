@@ -1,5 +1,11 @@
+import {
+  SecureStorageKeys,
+  secureGetItem,
+  secureMultiRemove,
+  secureRemoveItem,
+  secureSetItem,
+} from "@/lib/secureStorage";
 import { removeStoredEncryptionKey } from "@/service/biometricKeyStore";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as CryptoJS from "crypto-js";
 import * as Crypto from "expo-crypto";
 import type { SafePreferences } from "../models/preferences";
@@ -10,11 +16,11 @@ import { deriveMnemonicWrapKey } from "../service/mnemonicCrypto";
 
 const AES_IV_BYTES = 16;
 
-const SAFE_STORAGE_KEY = "@haj/database/safe";
-const ENCRYPTED_STORAGE_KEY = "@haj/database/encrypted";
-const SALT_STORAGE_KEY = "@haj/database/salt";
-const WRAPPED_MASTER_PIN_KEY = "@haj/database/wrapped_master_pin";
-const WRAPPED_MASTER_MNEMONIC_KEY = "@haj/database/wrapped_master_mnemonic";
+const SAFE_STORAGE_KEY = SecureStorageKeys.safe;
+const ENCRYPTED_STORAGE_KEY = SecureStorageKeys.encrypted;
+const SALT_STORAGE_KEY = SecureStorageKeys.salt;
+const WRAPPED_MASTER_PIN_KEY = SecureStorageKeys.wrappedMasterPin;
+const WRAPPED_MASTER_MNEMONIC_KEY = SecureStorageKeys.wrappedMasterMnemonic;
 
 const KDF_ITERATIONS = 10000;
 const SALT_BYTES = 16;
@@ -75,7 +81,7 @@ function randomMasterKeyHex(): string {
 }
 
 async function readWrappedMasterKey(): Promise<string | null> {
-  return AsyncStorage.getItem(WRAPPED_MASTER_PIN_KEY);
+  return secureGetItem(WRAPPED_MASTER_PIN_KEY);
 }
 
 /**
@@ -90,12 +96,9 @@ export async function registerWithMnemonic(
   const saltHex = uint8ArrayToHex(Crypto.getRandomBytes(SALT_BYTES));
   const masterKey = randomMasterKeyHex();
   const kPin = await deriveKey(pin, saltHex);
-  await AsyncStorage.setItem(SALT_STORAGE_KEY, saltHex);
-  await AsyncStorage.setItem(
-    WRAPPED_MASTER_PIN_KEY,
-    wrapMasterKey(kPin, masterKey)
-  );
-  await AsyncStorage.setItem(
+  await secureSetItem(SALT_STORAGE_KEY, saltHex);
+  await secureSetItem(WRAPPED_MASTER_PIN_KEY, wrapMasterKey(kPin, masterKey));
+  await secureSetItem(
     WRAPPED_MASTER_MNEMONIC_KEY,
     wrapMasterKey(kMnemonic, masterKey)
   );
@@ -104,7 +107,7 @@ export async function registerWithMnemonic(
 
 /** True when account was created with BIP39 recovery (mnemonic wrap present). */
 export async function hasRecoveryEnabled(): Promise<boolean> {
-  const w = await AsyncStorage.getItem(WRAPPED_MASTER_MNEMONIC_KEY);
+  const w = await secureGetItem(WRAPPED_MASTER_MNEMONIC_KEY);
   return w !== null;
 }
 
@@ -116,7 +119,7 @@ export async function recoverAccountWithMnemonic(
   mnemonicNormalized: string,
   newPin: string
 ): Promise<{ masterKey: string; user: User }> {
-  const wrapMnemonic = await AsyncStorage.getItem(WRAPPED_MASTER_MNEMONIC_KEY);
+  const wrapMnemonic = await secureGetItem(WRAPPED_MASTER_MNEMONIC_KEY);
   if (!wrapMnemonic) {
     throw new Error("Recovery is not set up for this account");
   }
@@ -137,15 +140,15 @@ export async function recoverAccountWithMnemonic(
   const kNewPin = await deriveKey(newPin, newSaltHex);
   const newWrapPin = wrapMasterKey(kNewPin, masterKey);
   await writeEncryptedDBObject(user, masterKey);
-  await AsyncStorage.setItem(SALT_STORAGE_KEY, newSaltHex);
-  await AsyncStorage.setItem(WRAPPED_MASTER_PIN_KEY, newWrapPin);
+  await secureSetItem(SALT_STORAGE_KEY, newSaltHex);
+  await secureSetItem(WRAPPED_MASTER_PIN_KEY, newWrapPin);
   return { masterKey, user };
 }
 
 // Login
 /** Verifies PIN by unwrapping master key (or legacy: derive key = DB key). */
 export async function login(pin: string): Promise<string> {
-  const saltHex = await AsyncStorage.getItem(SALT_STORAGE_KEY);
+  const saltHex = await secureGetItem(SALT_STORAGE_KEY);
   if (saltHex === null) {
     throw new Error("No PIN registered");
   }
@@ -177,7 +180,7 @@ export async function login(pin: string): Promise<string> {
 
 // change pin
 export async function changePin(oldPin: string, newPin: string): Promise<void> {
-  const saltHex = await AsyncStorage.getItem(SALT_STORAGE_KEY);
+  const saltHex = await secureGetItem(SALT_STORAGE_KEY);
   if (saltHex === null) {
     throw new Error("No PIN registered");
   }
@@ -200,8 +203,8 @@ export async function changePin(oldPin: string, newPin: string): Promise<void> {
     const kNew = await deriveKey(newPin, newSaltHex);
     const newWrapPin = wrapMasterKey(kNew, masterKey);
     await writeEncryptedDBObject(user, masterKey);
-    await AsyncStorage.setItem(SALT_STORAGE_KEY, newSaltHex);
-    await AsyncStorage.setItem(WRAPPED_MASTER_PIN_KEY, newWrapPin);
+    await secureSetItem(SALT_STORAGE_KEY, newSaltHex);
+    await secureSetItem(WRAPPED_MASTER_PIN_KEY, newWrapPin);
     return;
   }
   const oldKey = await deriveKey(oldPin, saltHex);
@@ -215,7 +218,7 @@ export async function changePin(oldPin: string, newPin: string): Promise<void> {
   const newSaltHex = uint8ArrayToHex(newSalt);
   const newKey = await deriveKey(newPin, newSaltHex);
   await writeEncryptedDBObject(user, newKey);
-  await AsyncStorage.setItem(SALT_STORAGE_KEY, newSaltHex);
+  await secureSetItem(SALT_STORAGE_KEY, newSaltHex);
 }
 // end change pin
 
@@ -230,7 +233,7 @@ function parseJson(raw: string): unknown {
 
 /** Returns true if the encrypted (user) object exists. Used for registration/auth flow. */
 export async function hasDatabaseObject(): Promise<boolean> {
-  const raw = await AsyncStorage.getItem(ENCRYPTED_STORAGE_KEY);
+  const raw = await secureGetItem(ENCRYPTED_STORAGE_KEY);
   return raw !== null;
 }
 
@@ -255,11 +258,11 @@ function parseEncryptedBackupPayload(json: string): EncryptedBackupPayload {
 
 /** Export encrypted payload and salt as JSON string for backup. Throws if no data. */
 export async function getEncryptedDataForExport(): Promise<string> {
-  const encrypted = await AsyncStorage.getItem(ENCRYPTED_STORAGE_KEY);
-  const salt = await AsyncStorage.getItem(SALT_STORAGE_KEY);
+  const encrypted = await secureGetItem(ENCRYPTED_STORAGE_KEY);
+  const salt = await secureGetItem(SALT_STORAGE_KEY);
   if (!encrypted || !salt) throw new Error("No data to export");
-  const wrappedPin = await AsyncStorage.getItem(WRAPPED_MASTER_PIN_KEY);
-  const wrappedMnemonic = await AsyncStorage.getItem(WRAPPED_MASTER_MNEMONIC_KEY);
+  const wrappedPin = await secureGetItem(WRAPPED_MASTER_PIN_KEY);
+  const wrappedMnemonic = await secureGetItem(WRAPPED_MASTER_MNEMONIC_KEY);
   let safePreferences: SafePreferences | undefined;
   try {
     safePreferences = await readSafeDBObject();
@@ -279,20 +282,17 @@ export async function getEncryptedDataForExport(): Promise<string> {
 /** Restore encrypted backup from export JSON (e.g. Firestore download). Overwrites local DB keys. */
 export async function importEncryptedBackup(json: string): Promise<void> {
   const data = parseEncryptedBackupPayload(json);
-  await AsyncStorage.setItem(ENCRYPTED_STORAGE_KEY, data.encrypted);
-  await AsyncStorage.setItem(SALT_STORAGE_KEY, data.salt);
+  await secureSetItem(ENCRYPTED_STORAGE_KEY, data.encrypted);
+  await secureSetItem(SALT_STORAGE_KEY, data.salt);
   if (data.wrappedMasterByPin) {
-    await AsyncStorage.setItem(WRAPPED_MASTER_PIN_KEY, data.wrappedMasterByPin);
+    await secureSetItem(WRAPPED_MASTER_PIN_KEY, data.wrappedMasterByPin);
   } else {
-    await AsyncStorage.removeItem(WRAPPED_MASTER_PIN_KEY);
+    await secureRemoveItem(WRAPPED_MASTER_PIN_KEY);
   }
   if (data.wrappedMasterByMnemonic) {
-    await AsyncStorage.setItem(
-      WRAPPED_MASTER_MNEMONIC_KEY,
-      data.wrappedMasterByMnemonic
-    );
+    await secureSetItem(WRAPPED_MASTER_MNEMONIC_KEY, data.wrappedMasterByMnemonic);
   } else {
-    await AsyncStorage.removeItem(WRAPPED_MASTER_MNEMONIC_KEY);
+    await secureRemoveItem(WRAPPED_MASTER_MNEMONIC_KEY);
   }
   if (data.safePreferences) {
     await writeSafeDBObject(data.safePreferences);
@@ -302,7 +302,7 @@ export async function importEncryptedBackup(json: string): Promise<void> {
 /** Permanently removes all stored app data (encrypted user data, salt, safe prefs). Use for self-destruct only. */
 export async function clearAllData(): Promise<void> {
   await removeStoredEncryptionKey();
-  await AsyncStorage.multiRemove([
+  await secureMultiRemove([
     ENCRYPTED_STORAGE_KEY,
     SALT_STORAGE_KEY,
     SAFE_STORAGE_KEY,
@@ -313,7 +313,7 @@ export async function clearAllData(): Promise<void> {
 
 /** Read safe (plaintext) data: SafePreferences. */
 export async function readSafeDBObject(): Promise<SafePreferences> {
-  const raw = await AsyncStorage.getItem(SAFE_STORAGE_KEY);
+  const raw = await secureGetItem(SAFE_STORAGE_KEY);
   if (raw === null) {
     throw new Error("Safe database not found");
   }
@@ -323,7 +323,7 @@ export async function readSafeDBObject(): Promise<SafePreferences> {
 
 /** Read encrypted (user) data. Decrypts with the given key (hex). Supports legacy plaintext JSON for migration. */
 export async function readEncryptedDBObject(key: string): Promise<User> {
-  const raw = await AsyncStorage.getItem(ENCRYPTED_STORAGE_KEY);
+  const raw = await secureGetItem(ENCRYPTED_STORAGE_KEY);
   if (raw === null) {
     throw new Error("Encrypted database not found");
   }
@@ -355,7 +355,7 @@ export async function readEncryptedDBObject(key: string): Promise<User> {
 export async function writeSafeDBObject(object: SafePreferences): Promise<void> {
   const validated = validateSafePreferences(object);
   const raw = JSON.stringify(validated);
-  await AsyncStorage.setItem(SAFE_STORAGE_KEY, raw);
+  await secureSetItem(SAFE_STORAGE_KEY, raw);
 }
 
 /** Write encrypted (user) data. Encrypts with the given key (hex). */
@@ -372,5 +372,5 @@ export async function writeEncryptedDBObject(
   const encrypted = CryptoJS.AES.encrypt(json, keyWA, { iv: ivWA });
   const ctBase64 = encrypted.ciphertext.toString(CryptoJS.enc.Base64);
   const stored = `${ivHex}:${ctBase64}`;
-  await AsyncStorage.setItem(ENCRYPTED_STORAGE_KEY, stored);
+  await secureSetItem(ENCRYPTED_STORAGE_KEY, stored);
 }

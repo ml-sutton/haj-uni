@@ -1,4 +1,5 @@
 import { QuickExitGyroscopeListener } from "@/components/QuickExitGyroscopeListener";
+import { migrateLegacyStorage } from "@/lib/secureStorage";
 import {
   ThemeProvider,
   cardBackgroundColor,
@@ -16,6 +17,7 @@ function ThemedStack() {
   useEffect(() => {
     if (hasHydratedRef.current) return;
     hasHydratedRef.current = true;
+    void migrateLegacyStorage();
     useSafePreferencesStore.getState().hydrateFromDb().then(() => {
       const prefs = useSafePreferencesStore.getState();
       setTheme(prefs.theme);
