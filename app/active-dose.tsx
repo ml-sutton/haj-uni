@@ -15,6 +15,7 @@ import {
   findDoseById,
   isUntakenDoseInActiveWindow,
 } from "@/utils/doseQueries";
+import { medicationsAfterDoseTaken } from "@/utils/medicationSupply";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -116,18 +117,12 @@ export default function ActiveDoseScreen() {
   const markAsTaken = useCallback(() => {
     if (!user || !doseId || !found) return;
     setMarkingTaken(true);
-    const updatedMedications = user.medications.map((m) => ({
-      ...m,
-      dosages: m.dosages.map((d) => {
-        if (d.id !== found.dosage.id) return d;
-        return {
-          ...d,
-          doses: d.doses.map((dose) =>
-            dose.id === doseId ? { ...dose, takenTime: new Date() } : dose
-          ),
-        };
-      }),
-    }));
+    const updatedMedications = medicationsAfterDoseTaken(
+      user.medications,
+      found.medication.id,
+      found.dosage.id,
+      doseId
+    );
     setUser({ ...user, medications: updatedMedications });
     persistStoreToDatabase().finally(() => {
       setMarkingTaken(false);

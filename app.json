@@ -8,9 +8,6 @@
     "scheme": "haj",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "ios": {
-      "supportsTablet": true
-    },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -25,6 +22,12 @@
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "HAJ uses your location on the pharmacy map to show pharmacies within 2 km while you are on that screen."
+      }
+    },
     "plugins": [
       "expo-router",
       "expo-secure-store",
@@ -32,6 +35,12 @@
         "expo-local-authentication",
         {
           "faceIDPermission": "Allow HAJ to use Face ID to unlock your encrypted data."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "HAJ uses your location on the pharmacy map to show pharmacies within 2 km while you are on that screen."
         }
       ]
     ],

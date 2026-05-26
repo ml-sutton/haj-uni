@@ -9,7 +9,9 @@ import {
 import type { Dose } from "@/models/dose";
 import type { Dosage } from "@/models/dosage";
 import type { Medication } from "@/models/medication";
+import { FindPharmaciesButton } from "@/components/doses/FindPharmaciesButton";
 import { useDatabaseStore } from "@/stores/databaseStore";
+import { getDepletedMedications } from "@/utils/medicationSupply";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import {
@@ -57,6 +59,8 @@ export default function DosesScreen() {
     );
   }
 
+  const depletedMedications = getDepletedMedications(user.medications ?? []);
+
   const allDoses: { medication: Medication; dosage: Dosage; dose: Dose }[] = (
     user.medications ?? []
   ).flatMap((medication) =>
@@ -72,6 +76,14 @@ export default function DosesScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
+        {depletedMedications.map((med) => (
+          <FindPharmaciesButton
+            key={med.id}
+            medicationId={med.id}
+            medicationName={med.name}
+          />
+        ))}
+
         <View style={styles.header}>
           <Text style={[styles.title, { color: titleColor }]}>Doses</Text>
           <Pressable
