@@ -121,7 +121,18 @@ jobs:
           echo "id=$BUILD_ID" >> "$GITHUB_OUTPUT"
 
       - name: Download APK from EAS
-        run: eas build:download --id "${{ steps.build.outputs.id }}" --output android-release.apk
+        run: |
+          BUILD_ID="${{ steps.build.outputs.id }}"
+          # EAS CLI v16+: --build-id + --json (no --output flag); copy cached artifact path for upload.
+          DOWNLOAD_JSON=$(eas build:download --build-id "$BUILD_ID" --non-interactive --json)
+          echo "$DOWNLOAD_JSON"
+          APK_PATH=$(echo "$DOWNLOAD_JSON" | jq -r '.path')
+          if [ -z "$APK_PATH" ] || [ "$APK_PATH" = "null" ] || [ ! -f "$APK_PATH" ]; then
+            echo "Could not resolve APK path from eas build:download"
+            exit 1
+          fi
+          cp "$APK_PATH" android-release.apk
+          ls -la android-release.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
