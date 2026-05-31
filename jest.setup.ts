@@ -36,3 +36,34 @@ jest.mock("expo-linear-gradient", () => {
   const { View } = require("react-native");
   return { LinearGradient: View };
 });
+
+jest.mock("expo-constants", () => ({
+  appOwnership: null,
+}));
+
+jest.mock("react-native-google-mobile-ads", () => {
+  const TestIds = {
+    REWARDED: process.env.EXPO_PUBLIC_ADMOB_REWARDED_AD_UNIT_ID ?? "",
+  };
+  const RewardedAdEventType = {
+    LOADED: "loaded",
+    EARNED_REWARD: "earned_reward",
+  };
+
+  return {
+    __esModule: true,
+    default: jest.fn(() => ({
+      initialize: jest.fn().mockResolvedValue(undefined),
+    })),
+    TestIds,
+    RewardedAdEventType,
+    RewardedAd: {
+      createForAdRequest: jest.fn(() => ({
+        loaded: false,
+        load: jest.fn(),
+        show: jest.fn(),
+        addAdEventListener: jest.fn(() => jest.fn()),
+      })),
+    },
+  };
+});

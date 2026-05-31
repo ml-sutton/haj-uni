@@ -8,6 +8,7 @@ import {
 } from "@/contexts/theme";
 import { useSafePreferencesStore } from "@/stores/safePreferencesStore";
 import { Stack } from "expo-router";
+import { initializeMobileAds } from "@/service/rewardedAdService";
 import { useEffect, useRef } from "react";
 
 /**
@@ -24,11 +25,12 @@ function ThemedStack() {
   const { theme, resolvedTheme, highContrast, setTheme } = useTheme();
   const hasHydratedRef = useRef(false);
 
-  // One-time: migrate legacy secure storage, then hydrate theme from safe preferences.
+  // One-time: migrate legacy secure storage, init ads, then hydrate theme from safe preferences.
   useEffect(() => {
     if (hasHydratedRef.current) return;
     hasHydratedRef.current = true;
     void migrateLegacyStorage();
+    void initializeMobileAds();
     useSafePreferencesStore.getState().hydrateFromDb().then(() => {
       const prefs = useSafePreferencesStore.getState();
       setTheme(prefs.theme);
