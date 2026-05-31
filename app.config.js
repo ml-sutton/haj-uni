@@ -5,8 +5,25 @@ module.exports = ({ config }) => {
     process.env.GMAPS_API_KEY?.trim() ||
     "";
 
+  const admobAndroidAppId =
+    process.env.EXPO_PUBLIC_ADMOB_ANDROID_APP_ID?.trim() ||
+    "ca-app-pub-3940256099942544~3347511713";
+  const admobIosAppId =
+    process.env.EXPO_PUBLIC_ADMOB_IOS_APP_ID?.trim() ||
+    "ca-app-pub-3940256099942544~1458002511";
+
   return {
     ...config,
+    plugins: [
+      ...(config.plugins ?? []),
+      [
+        "react-native-google-mobile-ads",
+        {
+          androidAppId: admobAndroidAppId,
+          iosAppId: admobIosAppId,
+        },
+      ],
+    ],
     android: {
       ...config.android,
       package: "madi.haj.app",

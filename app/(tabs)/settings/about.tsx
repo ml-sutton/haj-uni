@@ -7,6 +7,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { SupportUsAdButton } from "@/components/SupportUsAdButton";
 import { Pressable, ScrollView, StyleSheet, Text } from "react-native";
 
 /**
@@ -43,6 +44,7 @@ export default function AboutScreen() {
           HAJ is a personal health and dosage tracking app. Your data is stored
           locally and protected with a PIN.
         </Text>
+        <SupportUsAdButton />
       </ScrollView>
     </LinearGradient>
   );
